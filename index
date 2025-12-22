@@ -1,10 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ALE Learning Platform</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; max-width: 800px; margin: auto; }
+        .block { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-top: 20px; }
+        .title { color: #2c3e50; }
+    </style>
 </head>
 <body>
-    <h1>Platform is Loading...</h1>
-    <p>Phase 2 is officially live!</p>
+    <div id="app">Loading lesson data...</div>
+
+    <script>
+        const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
+
+        async function loadLesson() {
+            try {
+                const response = await fetch(bridgeUrl);
+                const data = await response.json();
+                
+                // For now, let's just show the first block from your sheet
+                const firstBlock = data[0];
+                
+                document.getElementById('app').innerHTML = `
+                    <h1 class="title">${firstBlock.Display_Title}</h1>
+                    <div class="block">
+                        <p><strong>Type:</strong> ${firstBlock.Block_Type}</p>
+                        <p><strong>Lesson ID:</strong> ${firstBlock.Lesson_ID}</p>
+                        <p>Your content will appear here once we link the Google Slides/Video player.</p>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('app').innerHTML = 'Error loading data. Check your Bridge URL.';
+                console.error(error);
+            }
+        }
+
+        loadLesson();
+    </script>
 </body>
 </html>
