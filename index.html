@@ -22,7 +22,7 @@
         .footer { padding: 20px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         button { padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        .leaderboard-box { background: #f1f3f5; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 350px; text-align: left; display: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .leaderboard-box { background: #f1f3f5; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 350px; text-align: left; display: none; }
         .leader-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #dee2e6; }
     </style>
 </head>
@@ -61,10 +61,12 @@
 
 <script>
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
-    const apiKey = 'AIzaSyCycKcjSnQ1F5rdFPI7JKV3Sdy84wbiBxk'; // Ensure this is your fresh key
+    // CURRENT STABLE MODEL FOR 2025
+    const apiKey = 'AIzaSyCycKcjSnQ1F5rdFPI7JKV3Sdy84wbiBxk'; 
     
     let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false;
 
+    // Colour Overlay Logic
     document.getElementById('overlayColor').oninput = document.getElementById('overlayOpacity').oninput = () => {
         const c = document.getElementById('overlayColor').value;
         const o = document.getElementById('overlayOpacity').value;
@@ -72,13 +74,14 @@
         document.documentElement.style.setProperty('--overlay-color', `rgba(${r},${g},${b},${o})`);
     };
 
+    // Load Data from Spreadsheet
     window.onload = async () => {
         try {
             const resp = await fetch(bridgeUrl);
             db = await resp.json();
             const years = [...new Set(db.map(row => row.Year_Group))].filter(Boolean).sort();
             years.forEach(y => document.getElementById('yearSelect').innerHTML += `<option value="${y}">${y}</option>`);
-        } catch(e) { console.error("Could not load library from Sheet."); }
+        } catch(e) { console.error("Database Connection Failed."); }
     };
 
     function updateUnits() {
@@ -108,51 +111,56 @@
         studentName = document.getElementById('studentName').value;
         const id = document.getElementById('lessonSelect').value;
         if(!studentName || !id) return alert("Please finish selecting your lesson.");
+        
         currentLesson = db.filter(r => r.Lesson_ID === id).sort((a,b) => a.Block_Order - b.Block_Order);
+        currentIndex = 0;
+        isSubmitted = false;
+        scores = {};
+        
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('player').style.display = 'flex';
         renderStep();
     }
 
     function renderStep() {
-        if (currentIndex >= currentLessonData.length) { showFinal(); return; }
-        const step = currentLessonData[currentIndex], stage = document.getElementById('mainStage');
+        if (currentIndex >= currentLesson.length) { showFinal(); return; }
+        const step = currentLesson[currentIndex], stage = document.getElementById('mainStage');
         
-        document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
-        document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em;">Open Lesson Slides</a>` : '';
-        document.getElementById('stepCounter').innerText = `Step ${currentIndex + 1} of ${currentLessonData.length}`;
+        document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
+        document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em; font-weight:bold;">Open Slides</a>` : '';
+        document.getElementById('stepCounter').innerText = `Step ${currentIndex + 1} of ${currentLesson.length}`;
+        document.getElementById('prevBtn').disabled = currentIndex === 0;
+        document.getElementById('nextBtn').innerText = (currentIndex === currentLesson.length - 1) ? "Finish Lesson" : "Next Step";
+        document.getElementById('nextBtn').style.display = "block";
 
         const fileId = step.Resource_Link;
 
         if (step.Block_Type === 'ASSESS') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput"></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745;">Check with AI Assistant</button><div id="fbBox" class="feedback-box"></div></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p style="font-size:1.1em;">${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer here..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745; font-size:1.1em;">Check with AI Assistant</button><div id="fbBox" class="feedback-box"></div></div>`;
         } else if (step.Block_Type === 'INFO') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Info:</h4><p style="font-size:1.1em; line-height:1.6;">${step.Resource_Link}</p></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Key Information:</h4><p style="font-size:1.2em; line-height:1.6;">${step.Resource_Link}</p></div>`;
         } else if (step.Block_Type === 'IMAGE') {
-            // Displays a Drive image directly
             stage.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100%;"><img src="https://drive.google.com/uc?export=view&id=${fileId}" style="max-width:95%; max-height:95%; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1);"></div>`;
         } else if (step.Block_Type === 'SOUND') {
-            // Adds a native audio player for MP3s
             stage.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;"><h4>Listen to this audio:</h4><audio controls style="width:80%;"><source src="https://drive.google.com/uc?export=download&id=${fileId}" type="audio/mpeg">Your browser does not support audio.</audio></div>`;
         } else if (step.Block_Type === 'DRIVE_VIDEO') {
-            // Uses the Drive preview player for videos
             stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" allow="autoplay" allowfullscreen></iframe>`;
         } else {
-            // Handle YouTube and Slides as before
             let url = step.Resource_Link;
             if (step.Block_Type === 'VIDEO') url = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
             if (step.Block_Type === 'SLIDES' && url.includes('/edit')) url = url.split('/edit')[0] + '/embed';
             stage.innerHTML = `<iframe src="${url}" allowfullscreen></iframe>`;
         }
     }
+
     async function runAI() {
         const a = document.getElementById('ansInput').value, fb = document.getElementById('fbBox'), b = document.getElementById('aiBtn'), s = currentLesson[currentIndex];
         if(!a.trim()) return alert("Write an answer first!"); 
-        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "<em>Teacher Assistant is marking...</em>";
+        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "<em>Analyzing your answer...</em>";
         
-        // POINTING TO LATEST 2025 STABLE MODEL
         try {
-            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+            // Using gemini-2.0-flash which is the current reliable model
+            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ contents: [{ parts: [{ text: `Grade: Q: ${s.Resource_Link} A: ${a} Criteria: ${s.AI_Criteria}. Format: **MARK:** [X/3] <br> **Strengths:** [Feedback] <br> **Targets:** [Advice]` }] }] })
             });
@@ -164,12 +172,12 @@
             if(m) scores[currentIndex] = parseInt(m[1]);
             
             fb.innerHTML = `<h4>Feedback:</h4>${feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}`;
-        } catch(e) { fb.innerHTML = `<b>AI Connection Issue.</b> Please try again or check your API key/billing in Google AI Studio.`; }
-        b.disabled = false; b.innerText = "Check Answer with AI Assistant";
+        } catch(e) { fb.innerHTML = `<b>AI Connection Issue.</b> Please check your internet or try again shortly.`; }
+        b.disabled = false; b.innerText = "Check with AI Assistant";
     }
 
     async function showFinal() {
-        document.getElementById('nextBtn').style.display = "none"; // Hide next button so they can't spam
+        document.getElementById('nextBtn').style.display = "none";
         let got = 0, max = 0; 
         Object.keys(scores).forEach(k => { got += scores[k]; max += 3; });
         const pct = max > 0 ? Math.round((got/max)*100) : 0;
