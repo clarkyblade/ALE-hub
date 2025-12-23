@@ -129,20 +129,24 @@
         document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
         document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em; font-weight:bold;">Open Slides</a>` : '';
         document.getElementById('stepCounter').innerText = `Step ${currentIndex + 1} of ${currentLesson.length}`;
-        document.getElementById('prevBtn').disabled = currentIndex === 0;
-        document.getElementById('nextBtn').innerText = (currentIndex === currentLesson.length - 1) ? "Finish Lesson" : "Next Step";
-        document.getElementById('nextBtn').style.display = "block";
 
-        const fileId = step.Resource_Link;
+        // THE ID CATCHER: This extracts the ID from a full Google Drive link automatically
+        let rawLink = step.Resource_Link;
+        let fileId = rawLink; 
+        if (rawLink.includes('/d/')) {
+            fileId = rawLink.split('/d/')[1].split('/')[0];
+        } else if (rawLink.includes('id=')) {
+            fileId = rawLink.split('id=')[1].split('&')[0];
+        }
 
         if (step.Block_Type === 'ASSESS') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p style="font-size:1.1em;">${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer here..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745; font-size:1.1em;">Check with AI Assistant</button><div id="fbBox" class="feedback-box"></div></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p style="font-size:1.1em;">${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer here..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745; font-size:1.1em;">Check Answer with AI Assistant</button><div id="fbBox" class="feedback-box"></div></div>`;
         } else if (step.Block_Type === 'INFO') {
             stage.innerHTML = `<div class="assessment-content"><h4>Key Information:</h4><p style="font-size:1.2em; line-height:1.6;">${step.Resource_Link}</p></div>`;
         } else if (step.Block_Type === 'IMAGE') {
             stage.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100%;"><img src="https://drive.google.com/uc?export=view&id=${fileId}" style="max-width:95%; max-height:95%; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1);"></div>`;
         } else if (step.Block_Type === 'SOUND') {
-            stage.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;"><h4>Listen to this audio:</h4><audio controls style="width:80%;"><source src="https://drive.google.com/uc?export=download&id=${fileId}" type="audio/mpeg">Your browser does not support audio.</audio></div>`;
+            stage.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;"><h4>Listen to the audio instruction:</h4><audio controls style="width:80%;"><source src="https://drive.google.com/uc?export=download&id=${fileId}" type="audio/mpeg">Your browser does not support audio.</audio></div>`;
         } else if (step.Block_Type === 'DRIVE_VIDEO') {
             stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" allow="autoplay" allowfullscreen></iframe>`;
         } else {
