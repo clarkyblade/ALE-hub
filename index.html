@@ -21,6 +21,8 @@
         .progress-bar { height: 4px; background: #e0e0e0; width: 100%; }
         .progress-fill { height: 100%; background: #007bff; transition: width 0.3s; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 2s linear infinite; display: inline-block; vertical-align: middle; margin-right: 10px; }
+        .result-card { text-align: center; padding: 40px; }
+        .score-circle { width: 120px; height: 120px; border-radius: 50%; background: #007bff; color: white; display: flex; align-items: center; justify-content: center; font-size: 2em; margin: 20px auto; font-weight: bold; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -38,6 +40,7 @@
     
     let lessonData = [];
     let currentIndex = 0;
+    let scores = {}; // Keeps track of marks for each ASSESS block
 
     async function init() {
         try {
@@ -58,9 +61,17 @@
     }
 
     function renderStep() {
+        const app = document.getElementById('app');
+        
+        // Show Results Page if we've passed the last block
+        if (currentIndex >= lessonData.length) {
+            renderResults();
+            return;
+        }
+
         const step = lessonData[currentIndex];
         const embedUrl = getEmbedUrl(step.Resource_Link, step.Block_Type);
-        const progress = ((currentIndex + 1) / lessonData.length) * 100;
+        const progress = ((currentIndex + 1) / (lessonData.length + 1)) * 100;
 
         let mainContent = '';
         if (step.Block_Type === 'ASSESS') {
@@ -78,7 +89,7 @@
             mainContent = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
         }
 
-        document.getElementById('app').innerHTML = `
+        app.innerHTML = `
             <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%"></div></div>
             <div class="header">
                 <small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Block_Type}</small>
@@ -89,7 +100,36 @@
                 <div class="controls">
                     <button onclick="changeStep(-1)" ${currentIndex === 0 ? 'disabled' : ''}>Previous</button>
                     <span style="font-size: 0.9em; color: #666;">Step ${currentIndex + 1} of ${lessonData.length}</span>
-                    <button onclick="changeStep(1)" ${currentIndex === lessonData.length - 1 ? 'disabled' : ''}>Next</button>
+                    <button onclick="changeStep(1)">Next</button>
+                </div>
+            </div>`;
+    }
+
+    function renderResults() {
+        const app = document.getElementById('app');
+        let totalScore = 0;
+        let maxScore = 0;
+
+        // Calculate totals based on stored scores
+        Object.keys(scores).forEach(key => {
+            totalScore += scores[key];
+            maxScore += 3; // Assuming each ASSESS is out of 3
+        });
+
+        const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+
+        app.innerHTML = `
+            <div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div>
+            <div class="result-card">
+                <h1>Lesson Complete!</h1>
+                <p>Your overall performance for this module:</p>
+                <div class="score-circle">${percentage}%</div>
+                <p>Total Marks: ${totalScore} / ${maxScore}</p>
+                <button style="margin-top:20px;" onclick="location.reload()">Restart Lesson</button>
+            </div>
+            <div class="footer">
+                <div class="controls">
+                    <button onclick="changeStep(-1)">Back to Review</button>
                 </div>
             </div>`;
     }
@@ -103,7 +143,6 @@
 
         if (!answer.trim()) return alert("Please type an answer first!");
 
-        // Using gemini-2.5-flash which is the current stable model
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         submitBtn.disabled = true;
@@ -118,46 +157,39 @@
                 body: JSON.stringify({
                     contents: [{
                         parts: [{
-                            text: `You are an expert teacher. Evaluate the student's answer based on the criteria.
+                            text: `You are an expert teacher. Evaluate the student's answer.
                             Question: ${question}
-                            Student Answer: ${answer}
-                            Marking Criteria: ${criteria}
+                            Answer: ${answer}
+                            Criteria: ${criteria}
                             
-                            Format your response EXACTLY like this (including bolding and line breaks):
-                            
-                            **MARK:** [X/3]
+                            Format EXACTLY as:
+                            MARK: [X/3]
                             <br>
                             **Strengths:**
-                            [Provide positive feedback here]
+                            [Feedback]
                             <br>
                             **Targets:**
-                            [Provide constructive advice here]
-                            
-                            Be concise and professional.`
+                            [Advice]`
                         }]
                     }]
                 })
             });
 
             const result = await response.json();
-
-            if (result.error) {
-                feedbackBox.innerHTML = `<b>AI Error:</b> ${result.error.message} (Code: ${result.error.code})`;
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = "Check with AI Assistant";
-                return;
-            }
-
             let aiFeedback = result.candidates[0].content.parts[0].text;
             
-            // Clean up Markdown bolding for the HTML box
+            // Extract the mark (e.g., "1") from the "MARK: [1/3]" string
+            const markMatch = aiFeedback.match(/MARK:\s*\[(\d+)\/3\]/i);
+            if (markMatch) {
+                scores[currentIndex] = parseInt(markMatch[1]);
+            }
+
             aiFeedback = aiFeedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            
             feedbackBox.innerHTML = `<h3>Teacher Feedback</h3>${aiFeedback}`;
             submitBtn.innerHTML = "Check with AI Assistant";
             submitBtn.disabled = false;
         } catch (error) {
-            feedbackBox.innerHTML = "<b>Connection Failed.</b> Check internet or API key.";
+            feedbackBox.innerHTML = "<b>Connection Failed.</b>";
             submitBtn.disabled = false;
             submitBtn.innerHTML = "Check with AI Assistant";
         }
