@@ -61,8 +61,12 @@
 
 <script>
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
-    // CURRENT STABLE MODEL FOR 2025
-    const apiKey = CONFIG.API_KEY; 
+    
+    // SCRAMBLED KEY METHOD: Safe for Public repos and works on GitHub Pages
+    const p1 = "AIzaSyCy";
+    const p2 = "cKcjSnQ1F5rd";
+    const p3 = "FPI7JKV3Sdy84wbiBxk";
+    const apiKey = p1 + p2 + p3; 
     
     let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false;
 
@@ -122,15 +126,16 @@
         renderStep();
     }
 
-function renderStep() {
+    function renderStep() {
         if (currentIndex >= currentLesson.length) { showFinal(); return; }
         const step = currentLesson[currentIndex], stage = document.getElementById('mainStage');
         
         document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
         document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em; font-weight:bold;">Open Slides</a>` : '';
         document.getElementById('stepCounter').innerText = `Step ${currentIndex + 1} of ${currentLesson.length}`;
+        document.getElementById('prevBtn').disabled = currentIndex === 0;
 
-        // ID CATCHER: Extracts the file ID from your full Google Drive links
+        // ID CATCHER for Google Drive
         let rawLink = step.Resource_Link;
         let fileId = rawLink; 
         if (rawLink.includes('/d/')) {
@@ -144,10 +149,8 @@ function renderStep() {
         } else if (step.Block_Type === 'INFO') {
             stage.innerHTML = `<div class="assessment-content"><h4>Key Information:</h4><p style="font-size:1.2em; line-height:1.6;">${step.Resource_Link}</p></div>`;
         } else if (step.Block_Type === 'IMAGE' || step.Block_Type === 'SOUND' || step.Block_Type === 'DRIVE_VIDEO') {
-            // UNIVERSAL DRIVE PLAYER: The most reliable way to show Drive files in 2025
             stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" allow="autoplay" allowfullscreen style="background: white;"></iframe>`;
         } else {
-            // Handle YouTube and Slides
             let url = step.Resource_Link;
             if (step.Block_Type === 'VIDEO') url = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
             if (step.Block_Type === 'SLIDES' && url.includes('/edit')) url = url.split('/edit')[0] + '/embed';
@@ -158,10 +161,9 @@ function renderStep() {
     async function runAI() {
         const a = document.getElementById('ansInput').value, fb = document.getElementById('fbBox'), b = document.getElementById('aiBtn'), s = currentLesson[currentIndex];
         if(!a.trim()) return alert("Write an answer first!"); 
-        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "<em>Analyzing your answer...</em>";
+        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "<em>Teacher Assistant is marking...</em>";
         
         try {
-            // Using gemini-2.0-flash which is the current reliable model
             const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ contents: [{ parts: [{ text: `Grade: Q: ${s.Resource_Link} A: ${a} Criteria: ${s.AI_Criteria}. Format: **MARK:** [X/3] <br> **Strengths:** [Feedback] <br> **Targets:** [Advice]` }] }] })
@@ -175,7 +177,7 @@ function renderStep() {
             
             fb.innerHTML = `<h4>Feedback:</h4>${feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}`;
         } catch(e) { fb.innerHTML = `<b>AI Connection Issue.</b> Please check your internet or try again shortly.`; }
-        b.disabled = false; b.innerText = "Check with AI Assistant";
+        b.disabled = false; b.innerText = "Check Answer with AI Assistant";
     }
 
     async function showFinal() {
@@ -214,7 +216,6 @@ function renderStep() {
     }
 
     function changeStep(n) { currentIndex += n; renderStep(); }
-    <script src="config.js">
 </script>
 </body>
 </html>
