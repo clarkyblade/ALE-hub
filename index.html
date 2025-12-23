@@ -10,16 +10,18 @@
         .header { padding: 20px; border-bottom: 1px solid #eee; background: #fff; }
         .content-area { aspect-ratio: 16 / 9; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; box-sizing: border-box;}
         iframe { width: 100%; height: 100%; border: none; }
-        .assessment-box { width: 80%; text-align: left; }
-        textarea { width: 100%; height: 150px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; font-size: 16px; }
-        .feedback { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; background: #e7f3ff; border-left: 5px solid #007bff; }
+        .assessment-box { width: 90%; text-align: left; }
+        textarea { width: 100%; height: 120px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 12px; font-size: 16px; font-family: inherit; }
+        .feedback { margin-top: 20px; padding: 20px; border-radius: 8px; display: none; background: #f8f9fa; border-left: 5px solid #28a745; white-space: pre-line; }
         .footer { padding: 20px; background: #fff; border-top: 1px solid #eee; }
         .controls { display: flex; justify-content: space-between; align-items: center; }
         button { padding: 10px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
         button:disabled { background: #e0e0e0; color: #999; cursor: not-allowed; }
-        .btn-submit { background: #28a745; margin-top: 10px; }
+        .btn-submit { background: #28a745; margin-top: 10px; width: 100%; font-size: 1.1em; }
         .progress-bar { height: 4px; background: #e0e0e0; width: 100%; }
         .progress-fill { height: 100%; background: #007bff; transition: width 0.3s; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 2s linear infinite; display: inline-block; vertical-align: middle; margin-right: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -32,6 +34,8 @@
 
 <script>
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
+    const apiKey = 'AIzaSyDOU27GwW9Bkflke41OC0J6_22IqYCjhbM';
+    
     let lessonData = [];
     let currentIndex = 0;
 
@@ -41,7 +45,7 @@
             lessonData = await response.json();
             renderStep();
         } catch (error) {
-            document.getElementById('app').innerHTML = "<div style='padding:20px;'>Error connecting to Google Sheets.</div>";
+            document.getElementById('app').innerHTML = "<div style='padding:20px;'>Error connecting to Master Sheet.</div>";
         }
     }
 
@@ -62,10 +66,10 @@
         if (step.Block_Type === 'ASSESS') {
             mainContent = `
                 <div class="assessment-box">
-                    <h3>Question:</h3>
+                    <h3>Challenge:</h3>
                     <p>${step.Resource_Link}</p>
-                    <textarea id="studentAnswer" placeholder="Type your answer here..."></textarea>
-                    <button class="btn-submit" onclick="submitAssessment()">Check Answer with AI</button>
+                    <textarea id="studentAnswer" placeholder="Write your explanation here..."></textarea>
+                    <button id="submitBtn" class="btn-submit" onclick="submitAssessment()">Check with AI Assistant</button>
                     <div id="feedbackBox" class="feedback"></div>
                 </div>`;
         } else if (step.Block_Type === 'INFO') {
@@ -93,16 +97,54 @@
     async function submitAssessment() {
         const answer = document.getElementById('studentAnswer').value;
         const feedbackBox = document.getElementById('feedbackBox');
+        const submitBtn = document.getElementById('submitBtn');
         const criteria = lessonData[currentIndex].AI_Criteria;
+        const question = lessonData[currentIndex].Resource_Link;
 
+        if (!answer.trim()) return alert("Please type an answer first!");
+
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<div class="loader"></div> Analysing...`;
         feedbackBox.style.display = 'block';
-        feedbackBox.innerHTML = "<b>Gemini is marking your work...</b>";
+        feedbackBox.innerHTML = "<b>Gemini is evaluating your answer against the marking criteria...</b>";
 
-        // This is where the API call will go. 
-        // For now, we simulate a response based on your criteria.
-        setTimeout(() => {
-            feedbackBox.innerHTML = `<b>Feedback:</b><br>You answered: "${answer}"<br><br>The AI is checking this against: <i>${criteria}</i>.<br><br><b>(AI Integration Pending: We need to plug in your API Key next!)</b>`;
-        }, 1500);
+        const prompt = {
+            contents: [{
+                parts: [{
+                    text: `You are an expert teacher. Evaluate the student's answer based on the marking criteria.
+                    Question: ${question}
+                    Student Answer: ${answer}
+                    Marking Criteria: ${criteria}
+                    
+                    Format your response exactly like this:
+                    MARK: [X/3]
+                    WWW (What Went Well): [Feedback]
+                    EBI (Even Better If): [Constructive advice]
+                    Be concise and encouraging.`
+                }]
+            }]
+        };
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(prompt)
+            });
+
+            const result = await response.json();
+            const aiFeedback = result.candidates[0].content.parts[0].text;
+            
+            feedbackBox.innerHTML = `<h3>Teacher Feedback</h3>${aiFeedback}`;
+            submitBtn.innerHTML = "Check with AI Assistant";
+            submitBtn.disabled = false;
+        } catch (error) {
+            feedbackBox.innerHTML = "<b>Error:</b> The AI is currently unavailable. Please check your internet connection or try again shortly.";
+            submitBtn.innerHTML = "Check with AI Assistant";
+            submitBtn.disabled = false;
+        }
     }
 
     function changeStep(direction) {
