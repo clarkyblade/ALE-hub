@@ -24,19 +24,18 @@
         .progress-fill { height: 100%; background: #007bff; transition: width 0.3s; }
         .result-card { padding: 40px; width: 100%; box-sizing: border-box; text-align: center; }
         .score-circle { width: 120px; height: 120px; border-radius: 50%; background: #007bff; color: white; display: flex; align-items: center; justify-content: center; font-size: 2.2em; margin: 20px auto; font-weight: bold; }
-        .leaderboard-list { text-align: left; max-width: 300px; margin: 20px auto; background: #f8f9fa; padding: 15px; border-radius: 8px; display: none; }
-        .leader-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd; }
+        .leaderboard-list { text-align: left; max-width: 350px; margin: 20px auto; background: #f8f9fa; padding: 20px; border-radius: 12px; display: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .leader-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 1.1em; }
         .leader-item:last-child { border-bottom: none; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
 <div id="loginScreen" class="login-screen">
-    <h2>Welcome to ALE Hub</h2>
-    <p>Please enter your name to begin:</p>
-    <input type="text" id="studentName" style="width:100%; padding:12px; margin-bottom:20px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box; font-size: 16px;" placeholder="Full Name">
+    <h2>ALE Adaptive Learning Engine</h2>
+    <p>Enter your full name to start:</p>
+    <input type="text" id="studentName" style="width:100%; padding:12px; margin-bottom:20px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box; font-size: 16px;" placeholder="e.g. Paul Clark">
     <button onclick="startLesson()" style="width:100%;">Enter Classroom</button>
 </div>
 
@@ -90,9 +89,9 @@
 
         let mainContent = '';
         if (step.Block_Type === 'ASSESS') {
-            mainContent = `<h3>Question:</h3><p>${step.Resource_Link}</p><textarea id="studentAnswer" placeholder="Type answer..."></textarea><button id="submitBtn" class="btn-submit" onclick="submitAssessment()">Check with AI Assistant</button><div id="feedbackBox" class="feedback"></div>`;
+            mainContent = `<h3>Question:</h3><p>${step.Resource_Link}</p><textarea id="studentAnswer" placeholder="Type answer..."></textarea><button id="submitBtn" class="btn-submit" onclick="submitAssessment()">Check Answer with AI</button><div id="feedbackBox" class="feedback"></div>`;
         } else if (step.Block_Type === 'INFO') {
-            mainContent = `<div><h3>Information:</h3><p>${step.Resource_Link}</p></div>`;
+            mainContent = `<div style="text-align:left; width: 100%;"><h3>Key Information:</h3><p style="font-size:1.1em;">${step.Resource_Link}</p></div>`;
         } else {
             mainContent = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
         }
@@ -100,11 +99,11 @@
         app.innerHTML = `
             <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%"></div></div>
             <div class="header">
-                <div class="header-titles"><small style="color:#007bff; font-weight:bold;">${step.Block_Type}</small><h2>${step.Display_Title}</h2></div>
-                ${step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" class="presentation-btn">Slides</a>` : ''}
+                <div class="header-titles"><small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Block_Type}</small><h2>${step.Display_Title}</h2></div>
+                ${step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" class="presentation-btn">Open Slides</a>` : ''}
             </div>
             <div class="content-area">${mainContent}</div>
-            <div class="footer"><div class="controls"><button onclick="changeStep(-1)" ${currentIndex === 0 ? 'disabled' : ''}>Back</button><span>Step ${currentIndex + 1} of ${lessonData.length}</span><button onclick="changeStep(1)">Next Step</button></div></div>`;
+            <div class="footer"><div class="controls"><button onclick="changeStep(-1)" ${currentIndex === 0 ? 'disabled' : ''}>Previous</button><span>Step ${currentIndex + 1} of ${lessonData.length}</span><button onclick="changeStep(1)">Next Step</button></div></div>`;
     }
 
     async function renderResults() {
@@ -118,14 +117,24 @@
             <div class="result-card">
                 <h1>Well done, ${studentName}!</h1>
                 <div class="score-circle">${percentage}%</div>
-                <p id="saveStatus">Saving progress...</p>
-                <button onclick="showLeaderboard()" style="background:#ffc107; color:black;">Show Top 5 Leaderboard</button>
-                <div id="leaderboard" class="leaderboard-list">Loading rankings...</div>
-                <br><br>
+                <p id="saveStatus">Saving your progress...</p>
+                <button onclick="showLeaderboard()" style="background:#ffc107; color:black; margin-bottom:10px;">🏆 View Class Top 5</button>
+                <div id="leaderboard" class="leaderboard-list">Fetching rankings...</div>
+                <br>
                 <button onclick="location.reload()" style="background:#6c757d;">Restart Lesson</button>
             </div>`;
 
-        await fetch(bridgeUrl, { method: 'POST', body: JSON.stringify({ studentName, lessonId: lessonData[0].Lesson_ID, score: totalScore, maxScore, percentage }) });
+        // FIXED: Sending whole number percentage
+        await fetch(bridgeUrl, { 
+            method: 'POST', 
+            body: JSON.stringify({ 
+                studentName, 
+                lessonId: lessonData[0].Lesson_ID, 
+                score: totalScore, 
+                maxScore, 
+                percentage: percentage 
+            }) 
+        });
         document.getElementById('saveStatus').innerText = "✓ Progress saved to Gradebook";
     }
 
@@ -134,25 +143,24 @@
         board.style.display = 'block';
         
         try {
-            // We'll use a specific query to tell the App Script we want the Gradebook data, not the lesson library
             const response = await fetch(bridgeUrl + "?action=getLeaderboard");
             const rawData = await response.json();
-            
-            // Filter for current lesson and sort by percentage descending
             const currentLessonId = lessonData[0].Lesson_ID;
+            
+            // FIXED: Ensuring we parse the percentage correctly for sorting
             const top5 = rawData
                 .filter(row => row.Lesson_ID === currentLessonId)
-                .sort((a, b) => parseInt(b.Percentage) - parseInt(a.Percentage))
+                .sort((a, b) => parseFloat(b.Percentage) - parseFloat(a.Percentage))
                 .slice(0, 5);
 
-            board.innerHTML = "<strong>🏆 Class Top 5:</strong><br><br>";
+            board.innerHTML = "<strong style='display:block; margin-bottom:15px; border-bottom:2px solid #ddd; padding-bottom:5px;'>🏆 Class Top 5:</strong>";
             top5.forEach((entry, i) => {
-                board.innerHTML += `<div class="leader-item"><span>${i+1}. ${entry.Student_Name}</span> <span>${entry.Percentage}%</span></div>`;
+                // Formatting decimals back to whole numbers just in case
+                let displayPct = Math.round(parseFloat(entry.Percentage));
+                board.innerHTML += `<div class="leader-item"><span>${i+1}. ${entry.Student_Name}</span> <strong>${displayPct}%</strong></div>`;
             });
-            if (top5.length === 0) board.innerHTML = "No scores recorded for this lesson yet!";
-        } catch (e) {
-            board.innerHTML = "Could not load leaderboard.";
-        }
+            if (top5.length === 0) board.innerHTML = "No scores recorded yet!";
+        } catch (e) { board.innerHTML = "Could not load leaderboard."; }
     }
 
     async function submitAssessment() {
@@ -161,11 +169,11 @@
         const submitBtn = document.getElementById('submitBtn');
         const criteria = lessonData[currentIndex].AI_Criteria;
         const question = lessonData[currentIndex].Resource_Link;
-        if (!answer.trim()) return alert("Type an answer!");
+        if (!answer.trim()) return alert("Please type an answer!");
 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
         submitBtn.disabled = true;
-        submitBtn.innerHTML = `<div class="loader"></div> Analyzing...`;
+        submitBtn.innerHTML = `Analyzing...`;
         feedbackBox.style.display = 'block';
 
         try {
@@ -175,8 +183,8 @@
             const markMatch = aiFeedback.match(/MARK:\s*\[(\d+)\/3\]/i);
             if (markMatch) { scores[currentIndex] = parseInt(markMatch[1]); }
             aiFeedback = aiFeedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            feedbackBox.innerHTML = `<h3>Feedback</h3>${aiFeedback}`;
-        } catch (e) { feedbackBox.innerHTML = "AI busy. Try again."; }
+            feedbackBox.innerHTML = `<h3>Teacher Feedback</h3>${aiFeedback}`;
+        } catch (e) { feedbackBox.innerHTML = "AI is currently busy. Try again."; }
         submitBtn.innerHTML = "Check Answer with AI";
         submitBtn.disabled = false;
     }
