@@ -7,33 +7,22 @@
     <style>
         :root { --overlay-color: rgba(255, 255, 255, 0); }
         body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-        
-        /* Irlen Overlay */
         #visualOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; background-color: var(--overlay-color); }
-
-        /* Login Screen */
         .login-screen { max-width: 500px; width: 90%; background: white; margin-top: 50px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
         select, input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
-        
         .a11y-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; }
         .a11y-panel label { font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 8px; }
-
-        /* Player */
         .player-container { max-width: 1000px; width: 95%; background: white; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; display: none; flex-direction: column; }
         .header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .content-area { aspect-ratio: 16 / 9; width: 100%; position: relative; background: #fff; display: flex; flex-direction: column; }
         iframe { width: 100%; height: 100%; border: none; }
-        
         .assessment-content { padding: 30px; overflow-y: auto; text-align: left; flex-grow: 1; }
         textarea { width: 100%; height: 150px; padding: 15px; border-radius: 8px; font-size: 16px; border: 1px solid #ccc; resize: none; margin-bottom: 15px; font-family: inherit; }
         .feedback-box { padding: 20px; border-radius: 8px; background: #f8f9fa; border-left: 5px solid #28a745; margin-top: 20px; white-space: pre-line; display: none; }
-        
         .footer { padding: 20px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        button { padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; }
+        button { padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        
-        /* Leaderboard */
-        .leaderboard-box { background: #f1f3f5; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 350px; text-align: left; display: none; }
+        .leaderboard-box { background: #f1f3f5; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 350px; text-align: left; display: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
         .leader-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #dee2e6; }
     </style>
 </head>
@@ -72,11 +61,10 @@
 
 <script>
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
-    const apiKey = 'AIzaSyCycKcjSnQ1F5rdFPI7JKV3Sdy84wbiBxk';
+    const apiKey = 'AIzaSyCycKcjSnQ1F5rdFPI7JKV3Sdy84wbiBxk'; // Ensure this is your fresh key
     
     let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false;
 
-    // Overlay logic
     document.getElementById('overlayColor').oninput = document.getElementById('overlayOpacity').oninput = () => {
         const c = document.getElementById('overlayColor').value;
         const o = document.getElementById('overlayOpacity').value;
@@ -84,12 +72,13 @@
         document.documentElement.style.setProperty('--overlay-color', `rgba(${r},${g},${b},${o})`);
     };
 
-    // Load curriculum
     window.onload = async () => {
-        const resp = await fetch(bridgeUrl);
-        db = await resp.json();
-        const years = [...new Set(db.map(row => row.Year_Group))].filter(Boolean).sort();
-        years.forEach(y => document.getElementById('yearSelect').innerHTML += `<option value="${y}">${y}</option>`);
+        try {
+            const resp = await fetch(bridgeUrl);
+            db = await resp.json();
+            const years = [...new Set(db.map(row => row.Year_Group))].filter(Boolean).sort();
+            years.forEach(y => document.getElementById('yearSelect').innerHTML += `<option value="${y}">${y}</option>`);
+        } catch(e) { console.error("Could not load library from Sheet."); }
     };
 
     function updateUnits() {
@@ -105,16 +94,20 @@
         const lSel = document.getElementById('lessonSelect');
         lSel.innerHTML = '<option value="">Select Lesson...</option>';
         lSel.disabled = !u;
-        if(u) [...new Set(db.filter(r => String(r.Year_Group) === y && r.Unit === u).map(r => r.Lesson_Name))].filter(Boolean).forEach(ln => {
-            const row = db.find(r => r.Lesson_Name === ln);
-            lSel.innerHTML += `<option value="${row.Lesson_ID}">${ln}</option>`;
-        });
+        if(u) {
+            const lessons = db.filter(r => String(r.Year_Group) === y && r.Unit === u);
+            const uniqueNames = [...new Set(lessons.map(r => r.Lesson_Name))].filter(Boolean);
+            uniqueNames.forEach(ln => {
+                const match = lessons.find(r => r.Lesson_Name === ln);
+                lSel.innerHTML += `<option value="${match.Lesson_ID}">${ln}</option>`;
+            });
+        }
     }
 
     function startLesson() {
         studentName = document.getElementById('studentName').value;
         const id = document.getElementById('lessonSelect').value;
-        if(!studentName || !id) return alert("Select all options first!");
+        if(!studentName || !id) return alert("Please finish selecting your lesson.");
         currentLesson = db.filter(r => r.Lesson_ID === id).sort((a,b) => a.Block_Order - b.Block_Order);
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('player').style.display = 'flex';
@@ -124,16 +117,17 @@
     function renderStep() {
         if(currentIndex >= currentLesson.length) { showFinal(); return; }
         const step = currentLesson[currentIndex], stage = document.getElementById('mainStage');
-        document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
-        document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em;">Open Lesson Slides</a>` : '';
+        document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
+        document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em; font-weight:bold;">Open Slides</a>` : '';
         document.getElementById('stepCounter').innerText = `Step ${currentIndex + 1} of ${currentLesson.length}`;
         document.getElementById('prevBtn').disabled = currentIndex === 0;
         document.getElementById('nextBtn').innerText = (currentIndex === currentLesson.length - 1) ? "Finish Lesson" : "Next Step";
+        document.getElementById('nextBtn').style.display = "block";
 
         if(step.Block_Type === 'ASSESS') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745;">Check with AI</button><div id="fbBox" class="feedback-box"></div></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p style="font-size:1.1em;">${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745; font-size:1.1em;">Check Answer with AI Assistant</button><div id="fbBox" class="feedback-box"></div></div>`;
         } else if(step.Block_Type === 'INFO') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Info:</h4><p style="font-size:1.1em; line-height:1.6;">${step.Resource_Link}</p></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Key Information:</h4><p style="font-size:1.2em; line-height:1.6;">${step.Resource_Link}</p></div>`;
         } else {
             let url = step.Resource_Link;
             if(step.Block_Type === 'VIDEO') url = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
@@ -144,39 +138,60 @@
 
     async function runAI() {
         const a = document.getElementById('ansInput').value, fb = document.getElementById('fbBox'), b = document.getElementById('aiBtn'), s = currentLesson[currentIndex];
-        if(!a.trim()) return; b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "<em>Analyzing...</em>";
+        if(!a.trim()) return alert("Write an answer first!"); 
+        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "<em>Teacher Assistant is marking...</em>";
+        
+        // POINTING TO LATEST 2025 STABLE MODEL
         try {
             const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ contents: [{ parts: [{ text: `Grade: Q: ${s.Resource_Link} A: ${a} Criteria: ${s.AI_Criteria}. Format: MARK: [X/3] <br> **Strengths:** [Feedback] <br> **Targets:** [Advice]` }] }] })
+                body: JSON.stringify({ contents: [{ parts: [{ text: `Grade: Q: ${s.Resource_Link} A: ${a} Criteria: ${s.AI_Criteria}. Format: **MARK:** [X/3] <br> **Strengths:** [Feedback] <br> **Targets:** [Advice]` }] }] })
             });
-            const d = await r.json(); let feedback = d.candidates[0].content.parts[0].text;
-            const m = feedback.match(/MARK:\s*\[(\d+)\/3\]/i); if(m) scores[currentIndex] = parseInt(m[1]);
-            fb.innerHTML = `<h5>Feedback</h5>${feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}`;
-        } catch(e) { fb.innerHTML = "AI Error. Try again."; }
-        b.disabled = false; b.innerText = "Check with AI";
+            const d = await r.json(); 
+            if(d.error) throw new Error(d.error.message);
+            
+            let feedback = d.candidates[0].content.parts[0].text;
+            const m = feedback.match(/MARK:\s*\[(\d+)\/3\]/i); 
+            if(m) scores[currentIndex] = parseInt(m[1]);
+            
+            fb.innerHTML = `<h4>Feedback:</h4>${feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}`;
+        } catch(e) { fb.innerHTML = `<b>AI Connection Issue.</b> Please try again or check your API key/billing in Google AI Studio.`; }
+        b.disabled = false; b.innerText = "Check Answer with AI Assistant";
     }
 
     async function showFinal() {
-        document.getElementById('nextBtn').disabled = true; // LOCK SUBMISSION
-        let got = 0, max = 0; Object.keys(scores).forEach(k => { got += scores[k]; max += 3; });
+        document.getElementById('nextBtn').style.display = "none"; // Hide next button so they can't spam
+        let got = 0, max = 0; 
+        Object.keys(scores).forEach(k => { got += scores[k]; max += 3; });
         const pct = max > 0 ? Math.round((got/max)*100) : 0;
-        document.getElementById('mainStage').innerHTML = `<div style="text-align:center; padding:40px;"><h1>Great work, ${studentName}!</h1><div style="font-size:4em; color:#007bff; font-weight:bold;">${pct}%</div><p id="status">Syncing results...</p><button onclick="loadLeaderboard()" style="background:#ffc107; color:#000;">🏆 View Top 5</button><div id="lbBox" class="leaderboard-box"></div><br><button onclick="location.reload()" style="background:#6c757d; margin-top:20px;">Exit to Menu</button></div>`;
+        
+        document.getElementById('mainStage').innerHTML = `<div style="text-align:center; padding:40px;"><h1>Great work, ${studentName}!</h1><div style="font-size:4em; color:#007bff; font-weight:bold; margin: 20px 0;">${pct}%</div><p id="status">Syncing results to Gradebook...</p><button id="lbBtn" onclick="loadLeaderboard()" style="background:#ffc107; color:#000; font-size:1.1em;">🏆 View Class Top 5</button><div id="lbBox" class="leaderboard-box"></div><br><button onclick="location.reload()" style="background:#6c757d; margin-top:20px;">Back to Menu</button></div>`;
         
         if(!isSubmitted) {
-            await fetch(bridgeUrl, { method: 'POST', body: JSON.stringify({ studentName, lessonId: currentLesson[0].Lesson_ID, score: got, maxScore: max, percentage: pct }) });
-            document.getElementById('status').innerText = "✓ Progress saved successfully.";
-            isSubmitted = true;
+            try {
+                await fetch(bridgeUrl, { method: 'POST', body: JSON.stringify({ studentName, lessonId: currentLesson[0].Lesson_ID, score: got, maxScore: max, percentage: pct }) });
+                document.getElementById('status').innerHTML = "✓ <b>Progress saved successfully!</b>";
+                isSubmitted = true;
+            } catch(e) { document.getElementById('status').innerText = "Results saved locally, but cloud sync failed."; }
         }
     }
 
     async function loadLeaderboard() {
-        const box = document.getElementById('lbBox'); box.style.display = 'block'; box.innerHTML = "Loading...";
-        const r = await fetch(bridgeUrl + "?action=getLeaderboard");
-        const d = await r.json();
-        const top5 = d.filter(row => row.Lesson_ID === currentLesson[0].Lesson_ID).map(row => ({...row, pct: parseFloat(String(row.Percentage).replace('%','')) || 0})).sort((a,b) => b.pct - a.pct).slice(0, 5);
-        box.innerHTML = "<strong>🏆 Class Top 5:</strong>";
-        top5.forEach((e, i) => box.innerHTML += `<div class="leader-row"><span>${i+1}. ${e.Student_Name}</span> <strong>${Math.round(e.pct)}%</strong></div>`);
+        const box = document.getElementById('lbBox'); 
+        box.style.display = 'block'; 
+        box.innerHTML = "<em>Fetching rankings...</em>";
+        try {
+            const r = await fetch(bridgeUrl + "?action=getLeaderboard");
+            const d = await r.json();
+            const top5 = d.filter(row => row.Lesson_ID === currentLesson[0].Lesson_ID)
+                          .map(row => ({...row, pctNum: parseFloat(String(row.Percentage).replace('%','')) || 0}))
+                          .sort((a,b) => b.pctNum - a.pctNum)
+                          .slice(0, 5);
+            
+            box.innerHTML = "<strong>🏆 Class Top 5:</strong>";
+            top5.forEach((e, i) => box.innerHTML += `<div class="leader-row"><span>${i+1}. ${e.Student_Name}</span> <strong>${Math.round(e.pctNum)}%</strong></div>`);
+            if(top5.length === 0) box.innerHTML = "No scores for this lesson yet!";
+        } catch(e) { box.innerHTML = "Leaderboard currently unavailable."; }
     }
 
     function changeStep(n) { currentIndex += n; renderStep(); }
