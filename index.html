@@ -34,7 +34,7 @@
 
 <script>
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
-    const apiKey = 'AIzaSyDOU27GwW9Bkflke41OC0J6_22IqYCjhbM';
+    const apiKey = 'AIzaSyCycKcjSnQ1F5rdFPI7JKV3Sdy84wbiBxk';
     
     let lessonData = [];
     let currentIndex = 0;
@@ -108,42 +108,46 @@
         submitBtn.disabled = true;
         submitBtn.innerHTML = `<div class="loader"></div> Analysing...`;
         feedbackBox.style.display = 'block';
-        feedbackBox.innerHTML = "<b>Gemini is evaluating your answer against the marking criteria...</b>";
-
-        const prompt = {
-            contents: [{
-                parts: [{
-                    text: `You are an expert teacher. Evaluate the student's answer based on the marking criteria.
-                    Question: ${question}
-                    Student Answer: ${answer}
-                    Marking Criteria: ${criteria}
-                    
-                    Format your response exactly like this:
-                    MARK: [X/3]
-                    WWW (What Went Well): [Feedback]
-                    EBI (Even Better If): [Constructive advice]
-                    Be concise and encouraging.`
-                }]
-            }]
-        };
+        feedbackBox.innerHTML = "<b>Gemini is evaluating your answer...</b>";
 
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(prompt)
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `You are an expert teacher. Evaluate the student's answer based on the criteria.
+                            Question: ${question}
+                            Student Answer: ${answer}
+                            Marking Criteria: ${criteria}
+                            
+                            Format:
+                            MARK: [X/3]
+                            WWW: [Feedback]
+                            EBI: [Advice]`
+                        }]
+                    }]
+                })
             });
 
             const result = await response.json();
+
+            if (result.error) {
+                feedbackBox.innerHTML = `<b>AI Error:</b> ${result.error.message} (Code: ${result.error.code})`;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = "Check with AI Assistant";
+                return;
+            }
+
             const aiFeedback = result.candidates[0].content.parts[0].text;
-            
             feedbackBox.innerHTML = `<h3>Teacher Feedback</h3>${aiFeedback}`;
             submitBtn.innerHTML = "Check with AI Assistant";
             submitBtn.disabled = false;
         } catch (error) {
-            feedbackBox.innerHTML = "<b>Error:</b> The AI is currently unavailable. Please check your internet connection or try again shortly.";
-            submitBtn.innerHTML = "Check with AI Assistant";
+            feedbackBox.innerHTML = "<b>Connection Failed.</b> Check internet or API key.";
             submitBtn.disabled = false;
+            submitBtn.innerHTML = "Check with AI Assistant";
         }
     }
 
