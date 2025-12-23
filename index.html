@@ -34,7 +34,6 @@
 
 <script>
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
-    // Using your verified API key
     const apiKey = 'AIzaSyCycKcjSnQ1F5rdFPI7JKV3Sdy84wbiBxk';
     
     let lessonData = [];
@@ -104,7 +103,7 @@
 
         if (!answer.trim()) return alert("Please type an answer first!");
 
-        // FIXED: Updated to point to gemini-2.5-flash which is the 2025 stable model
+        // Use the current stable 2025 model endpoint
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         submitBtn.disabled = true;
@@ -124,10 +123,12 @@
                             Student Answer: ${answer}
                             Marking Criteria: ${criteria}
                             
-                            Format:
+                            Format your response EXACTLY as follows:
                             MARK: [X/3]
-                            WWW: [Feedback]
-                            EBI: [Advice]`
+                            Strengths: [Provide positive feedback here]
+                            Targets: [Provide constructive advice for improvement here]
+                            
+                            Be concise, professional, and encouraging.`
                         }]
                     }]
                 })
@@ -136,7 +137,6 @@
             const result = await response.json();
 
             if (result.error) {
-                // This will catch the 404 or other regional errors
                 feedbackBox.innerHTML = `<b>AI Error:</b> ${result.error.message} (Code: ${result.error.code})`;
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = "Check with AI Assistant";
