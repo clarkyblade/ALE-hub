@@ -122,7 +122,7 @@
         renderStep();
     }
 
-    function renderStep() {
+function renderStep() {
         if (currentIndex >= currentLesson.length) { showFinal(); return; }
         const step = currentLesson[currentIndex], stage = document.getElementById('mainStage');
         
@@ -130,7 +130,7 @@
         document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em; font-weight:bold;">Open Slides</a>` : '';
         document.getElementById('stepCounter').innerText = `Step ${currentIndex + 1} of ${currentLesson.length}`;
 
-        // THE ID CATCHER: This extracts the ID from a full Google Drive link automatically
+        // ID CATCHER: Extracts the file ID from your full Google Drive links
         let rawLink = step.Resource_Link;
         let fileId = rawLink; 
         if (rawLink.includes('/d/')) {
@@ -143,13 +143,11 @@
             stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p style="font-size:1.1em;">${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer here..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745; font-size:1.1em;">Check Answer with AI Assistant</button><div id="fbBox" class="feedback-box"></div></div>`;
         } else if (step.Block_Type === 'INFO') {
             stage.innerHTML = `<div class="assessment-content"><h4>Key Information:</h4><p style="font-size:1.2em; line-height:1.6;">${step.Resource_Link}</p></div>`;
-        } else if (step.Block_Type === 'IMAGE') {
-            stage.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100%;"><img src="https://drive.google.com/uc?export=view&id=${fileId}" style="max-width:95%; max-height:95%; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1);"></div>`;
-        } else if (step.Block_Type === 'SOUND') {
-            stage.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;"><h4>Listen to the audio instruction:</h4><audio controls style="width:80%;"><source src="https://drive.google.com/uc?export=download&id=${fileId}" type="audio/mpeg">Your browser does not support audio.</audio></div>`;
-        } else if (step.Block_Type === 'DRIVE_VIDEO') {
-            stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" allow="autoplay" allowfullscreen></iframe>`;
+        } else if (step.Block_Type === 'IMAGE' || step.Block_Type === 'SOUND' || step.Block_Type === 'DRIVE_VIDEO') {
+            // UNIVERSAL DRIVE PLAYER: The most reliable way to show Drive files in 2025
+            stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" allow="autoplay" allowfullscreen style="background: white;"></iframe>`;
         } else {
+            // Handle YouTube and Slides
             let url = step.Resource_Link;
             if (step.Block_Type === 'VIDEO') url = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
             if (step.Block_Type === 'SLIDES' && url.includes('/edit')) url = url.split('/edit')[0] + '/embed';
