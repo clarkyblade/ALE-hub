@@ -12,7 +12,7 @@
         iframe { width: 100%; height: 100%; border: none; }
         .assessment-box { width: 90%; text-align: left; }
         textarea { width: 100%; height: 120px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 12px; font-size: 16px; font-family: inherit; }
-        .feedback { margin-top: 20px; padding: 20px; border-radius: 8px; display: none; background: #f8f9fa; border-left: 5px solid #28a745; white-space: pre-line; }
+        .feedback { margin-top: 20px; padding: 20px; border-radius: 8px; display: none; background: #f8f9fa; border-left: 5px solid #28a745; white-space: pre-line; line-height: 1.6; }
         .footer { padding: 20px; background: #fff; border-top: 1px solid #eee; }
         .controls { display: flex; justify-content: space-between; align-items: center; }
         button { padding: 10px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
@@ -103,7 +103,7 @@
 
         if (!answer.trim()) return alert("Please type an answer first!");
 
-        // Use the current stable 2025 model endpoint
+        // Using gemini-2.5-flash which is the current stable model
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         submitBtn.disabled = true;
@@ -123,12 +123,17 @@
                             Student Answer: ${answer}
                             Marking Criteria: ${criteria}
                             
-                            Format your response EXACTLY as follows:
-                            MARK: [X/3]
-                            Strengths: [Provide positive feedback here]
-                            Targets: [Provide constructive advice for improvement here]
+                            Format your response EXACTLY like this (including bolding and line breaks):
                             
-                            Be concise, professional, and encouraging.`
+                            **MARK:** [X/3]
+                            <br>
+                            **Strengths:**
+                            [Provide positive feedback here]
+                            <br>
+                            **Targets:**
+                            [Provide constructive advice here]
+                            
+                            Be concise and professional.`
                         }]
                     }]
                 })
@@ -143,7 +148,11 @@
                 return;
             }
 
-            const aiFeedback = result.candidates[0].content.parts[0].text;
+            let aiFeedback = result.candidates[0].content.parts[0].text;
+            
+            // Clean up Markdown bolding for the HTML box
+            aiFeedback = aiFeedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
             feedbackBox.innerHTML = `<h3>Teacher Feedback</h3>${aiFeedback}`;
             submitBtn.innerHTML = "Check with AI Assistant";
             submitBtn.disabled = false;
