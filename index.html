@@ -8,12 +8,16 @@
         body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .player-container { max-width: 900px; width: 95%; background: white; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; display: flex; flex-direction: column; }
         .header { padding: 20px; border-bottom: 1px solid #eee; background: #fff; }
-        .content-area { aspect-ratio: 16 / 9; background: #000; display: flex; align-items: center; justify-content: center; color: white; }
+        .content-area { aspect-ratio: 16 / 9; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; box-sizing: border-box;}
         iframe { width: 100%; height: 100%; border: none; }
+        .assessment-box { width: 80%; text-align: left; }
+        textarea { width: 100%; height: 150px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; font-size: 16px; }
+        .feedback { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; background: #e7f3ff; border-left: 5px solid #007bff; }
         .footer { padding: 20px; background: #fff; border-top: 1px solid #eee; }
         .controls { display: flex; justify-content: space-between; align-items: center; }
         button { padding: 10px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
         button:disabled { background: #e0e0e0; color: #999; cursor: not-allowed; }
+        .btn-submit { background: #28a745; margin-top: 10px; }
         .progress-bar { height: 4px; background: #e0e0e0; width: 100%; }
         .progress-fill { height: 100%; background: #007bff; transition: width 0.3s; }
     </style>
@@ -43,23 +47,9 @@
 
     function getEmbedUrl(link, type) {
         if (!link) return "";
-        
-        // Convert YouTube links
-        if (type === 'VIDEO' && link.includes('youtube.com/watch?v=')) {
-            return link.replace('watch?v=', 'embed/');
-        }
-        if (type === 'VIDEO' && link.includes('youtu.be/')) {
-            return link.replace('youtu.be/', 'youtube.com/embed/');
-        }
-        
-        // Convert Google Slides links
-        if (type === 'SLIDES' && link.includes('/pub?')) {
-            return link; // Already a published link
-        }
-        if (type === 'SLIDES' && link.includes('/edit')) {
-            return link.split('/edit')[0] + '/embed';
-        }
-
+        if (type === 'VIDEO' && link.includes('youtube.com/watch?v=')) return link.replace('watch?v=', 'embed/');
+        if (type === 'VIDEO' && link.includes('youtu.be/')) return link.replace('youtu.be/', 'youtube.com/embed/');
+        if (type === 'SLIDES' && link.includes('/edit')) return link.split('/edit')[0] + '/embed';
         return link;
     }
 
@@ -68,26 +58,51 @@
         const embedUrl = getEmbedUrl(step.Resource_Link, step.Block_Type);
         const progress = ((currentIndex + 1) / lessonData.length) * 100;
 
+        let mainContent = '';
+        if (step.Block_Type === 'ASSESS') {
+            mainContent = `
+                <div class="assessment-box">
+                    <h3>Question:</h3>
+                    <p>${step.Resource_Link}</p>
+                    <textarea id="studentAnswer" placeholder="Type your answer here..."></textarea>
+                    <button class="btn-submit" onclick="submitAssessment()">Check Answer with AI</button>
+                    <div id="feedbackBox" class="feedback"></div>
+                </div>`;
+        } else if (step.Block_Type === 'INFO') {
+            mainContent = `<div style="padding:40px; text-align:center;"><h3>Instructional Note:</h3><p>${step.Resource_Link}</p></div>`;
+        } else {
+            mainContent = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+        }
+
         document.getElementById('app').innerHTML = `
             <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%"></div></div>
             <div class="header">
                 <small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Block_Type}</small>
                 <h2 style="margin: 5px 0;">${step.Display_Title}</h2>
             </div>
-            
-            <div class="content-area">
-                ${step.Block_Type === 'INFO' ? `<div style="padding:40px; text-align:center;"><h3>Instructional Note:</h3><p>${step.Resource_Link}</p></div>` : 
-                `<iframe src="${embedUrl}" allowfullscreen></iframe>`}
-            </div>
-
+            <div class="content-area">${mainContent}</div>
             <div class="footer">
                 <div class="controls">
                     <button onclick="changeStep(-1)" ${currentIndex === 0 ? 'disabled' : ''}>Previous</button>
                     <span style="font-size: 0.9em; color: #666;">Step ${currentIndex + 1} of ${lessonData.length}</span>
                     <button onclick="changeStep(1)" ${currentIndex === lessonData.length - 1 ? 'disabled' : ''}>Next</button>
                 </div>
-            </div>
-        `;
+            </div>`;
+    }
+
+    async function submitAssessment() {
+        const answer = document.getElementById('studentAnswer').value;
+        const feedbackBox = document.getElementById('feedbackBox');
+        const criteria = lessonData[currentIndex].AI_Criteria;
+
+        feedbackBox.style.display = 'block';
+        feedbackBox.innerHTML = "<b>Gemini is marking your work...</b>";
+
+        // This is where the API call will go. 
+        // For now, we simulate a response based on your criteria.
+        setTimeout(() => {
+            feedbackBox.innerHTML = `<b>Feedback:</b><br>You answered: "${answer}"<br><br>The AI is checking this against: <i>${criteria}</i>.<br><br><b>(AI Integration Pending: We need to plug in your API Key next!)</b>`;
+        }, 1500);
     }
 
     function changeStep(direction) {
