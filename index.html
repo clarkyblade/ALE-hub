@@ -8,22 +8,25 @@
         body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .login-screen { max-width: 400px; width: 90%; background: white; margin-top: 100px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
         .player-container { max-width: 900px; width: 95%; background: white; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; display: none; flex-direction: column; }
-        .header { padding: 20px; border-bottom: 1px solid #eee; background: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .header { padding: 20px; border-bottom: 1px solid #eee; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; }
+        .header-titles h2 { margin: 5px 0; font-size: 1.4em; }
         .presentation-btn { background: #6c757d; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-size: 0.85em; font-weight: bold; }
-        .content-area { aspect-ratio: 16 / 9; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; box-sizing: border-box;}
+        .content-area { aspect-ratio: 16 / 9; background: #fff; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; overflow-y: auto; padding: 30px; box-sizing: border-box; width: 100%; }
         iframe { width: 100%; height: 100%; border: none; }
-        textarea { width: 100%; height: 120px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 12px; font-size: 16px; }
-        .feedback { margin-top: 20px; padding: 20px; border-radius: 8px; display: none; background: #f8f9fa; border-left: 5px solid #28a745; white-space: pre-line; line-height: 1.6; }
+        .challenge-text { font-size: 1.1em; font-weight: bold; margin-bottom: 15px; text-align: left; width: 100%; }
+        textarea { width: 100%; height: 140px; border-radius: 8px; border: 1px solid #ccc; padding: 15px; font-size: 16px; font-family: inherit; box-sizing: border-box; resize: none; margin-bottom: 15px; }
+        .feedback { padding: 20px; border-radius: 8px; display: none; background: #f8f9fa; border-left: 5px solid #28a745; white-space: pre-line; line-height: 1.6; width: 100%; box-sizing: border-box; margin-top: 10px; }
         .footer { padding: 20px; background: #fff; border-top: 1px solid #eee; }
         .controls { display: flex; justify-content: space-between; align-items: center; }
-        button { padding: 10px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
+        button { padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
         button:disabled { background: #e0e0e0; color: #999; cursor: not-allowed; }
-        .btn-submit { background: #28a745; margin-top: 10px; width: 100%; }
+        .btn-submit { background: #28a745; width: 100%; font-size: 1em; }
         .progress-bar { height: 4px; background: #e0e0e0; width: 100%; }
         .progress-fill { height: 100%; background: #007bff; transition: width 0.3s; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 2s linear infinite; display: inline-block; vertical-align: middle; margin-right: 10px; }
+        .result-card { padding: 40px; width: 100%; box-sizing: border-box; text-align: center; }
+        .score-circle { width: 120px; height: 120px; border-radius: 50%; background: #007bff; color: white; display: flex; align-items: center; justify-content: center; font-size: 2.2em; margin: 20px auto; font-weight: bold; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .score-circle { width: 120px; height: 120px; border-radius: 50%; background: #007bff; color: white; display: flex; align-items: center; justify-content: center; font-size: 2em; margin: 20px auto; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -31,8 +34,8 @@
 <div id="loginScreen" class="login-screen">
     <h2>Welcome to ALE Hub</h2>
     <p>Please enter your name to begin:</p>
-    <input type="text" id="studentName" style="width:100%; padding:12px; margin-bottom:20px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box;" placeholder="e.g. John Smith">
-    <button onclick="startLesson()" style="width:100%;">Start Lesson</button>
+    <input type="text" id="studentName" style="width:100%; padding:12px; margin-bottom:20px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box; font-size: 16px;" placeholder="Full Name">
+    <button onclick="startLesson()" style="width:100%;">Enter Classroom</button>
 </div>
 
 <div id="player" class="player-container">
@@ -50,7 +53,7 @@
 
     function startLesson() {
         const nameInput = document.getElementById('studentName').value;
-        if (!nameInput.trim()) return alert("Please enter your name!");
+        if (!nameInput.trim()) return alert("Name is required!");
         studentName = nameInput;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('player').style.display = 'flex';
@@ -63,14 +66,14 @@
             lessonData = await response.json();
             renderStep();
         } catch (error) {
-            document.getElementById('app').innerHTML = "<div style='padding:20px;'>Error loading lesson.</div>";
+            document.getElementById('app').innerHTML = "<div style='padding:20px;'>Error connecting to Master Sheet.</div>";
         }
     }
 
     function getEmbedUrl(link, type) {
         if (!link) return "";
         if (type === 'VIDEO' && link.includes('youtube.com/watch?v=')) return link.replace('watch?v=', 'embed/');
-        if (type === 'VIDEO' && link.includes('youtu.be/')) return link.replace('youtu.be/', 'youtu.be/embed/');
+        if (type === 'VIDEO' && link.includes('youtu.be/')) return link.replace('youtu.be/', 'youtube.com/embed/');
         if (type === 'SLIDES' && link.includes('/edit')) return link.split('/edit')[0] + '/embed';
         return link;
     }
@@ -85,9 +88,15 @@
 
         let mainContent = '';
         if (step.Block_Type === 'ASSESS') {
-            mainContent = `<h3>Challenge:</h3><p>${step.Resource_Link}</p><textarea id="studentAnswer" placeholder="Type answer here..."></textarea><button id="submitBtn" class="btn-submit" onclick="submitAssessment()">Check with AI Assistant</button><div id="feedbackBox" class="feedback"></div>`;
+            mainContent = `
+                <div class="challenge-text">Question:</div>
+                <p style="margin-top:0; font-size: 1.1em; color: #333;">${step.Resource_Link}</p>
+                <textarea id="studentAnswer" placeholder="Type your answer here..."></textarea>
+                <button id="submitBtn" class="btn-submit" onclick="submitAssessment()">Check Answer with AI Assistant</button>
+                <div id="feedbackBox" class="feedback"></div>
+            `;
         } else if (step.Block_Type === 'INFO') {
-            mainContent = `<div style="padding:40px; text-align:center;"><h3>Instructional Note:</h3><p>${step.Resource_Link}</p></div>`;
+            mainContent = `<div style="text-align:left; width: 100%;"><h3>Key Information:</h3><p style="font-size:1.1em; line-height: 1.8;">${step.Resource_Link}</p></div>`;
         } else {
             mainContent = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
         }
@@ -95,15 +104,18 @@
         app.innerHTML = `
             <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%"></div></div>
             <div class="header">
-                <div><small style="text-transform:uppercase;">${step.Block_Type}</small><h2>${step.Display_Title}</h2></div>
-                ${step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" class="presentation-btn">View Lesson Slides</a>` : ''}
+                <div class="header-titles">
+                    <small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Block_Type}</small>
+                    <h2>${step.Display_Title}</h2>
+                </div>
+                ${step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" class="presentation-btn">Open Slides</a>` : ''}
             </div>
             <div class="content-area">${mainContent}</div>
             <div class="footer">
                 <div class="controls">
-                    <button onclick="changeStep(-1)" ${currentIndex === 0 ? 'disabled' : ''}>Back</button>
-                    <span>Step ${currentIndex + 1} of ${lessonData.length}</span>
-                    <button onclick="changeStep(1)">Next</button>
+                    <button onclick="changeStep(-1)" ${currentIndex === 0 ? 'disabled' : ''}>Previous</button>
+                    <span style="color:#666;">Step ${currentIndex + 1} of ${lessonData.length}</span>
+                    <button onclick="changeStep(1)">Next Step</button>
                 </div>
             </div>`;
     }
@@ -112,10 +124,26 @@
         const app = document.getElementById('app');
         let totalScore = 0;
         let maxScore = 0;
-        Object.keys(scores).forEach(key => { totalScore += scores[key]; maxScore += 3; });
+        
+        // Sum up the stored scores
+        Object.keys(scores).forEach(key => { 
+            totalScore += scores[key]; 
+            maxScore += 3; 
+        });
+
         const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
-        app.innerHTML = `<div class="result-card"><h1>Well done, ${studentName}!</h1><div class="score-circle">${percentage}%</div><p id="saveStatus">Saving to Gradebook...</p></div>`;
+        app.innerHTML = `
+            <div class="result-card">
+                <h1 style="margin-bottom:10px;">Great job, ${studentName}!</h1>
+                <p style="color:#666; margin-top:0;">You have finished the <strong>${lessonData[0].Lesson_ID}</strong> module.</p>
+                <div class="score-circle">${percentage}%</div>
+                <p style="font-weight:bold;">Total Score: ${totalScore} / ${maxScore}</p>
+                <p id="saveStatus" style="color:#28a745;">Saving your progress...</p>
+                <button style="margin-top:20px; background:#6c757d;" onclick="location.reload()">Restart Lesson</button>
+            </div>
+            <div class="footer"><div class="controls"><button onclick="changeStep(-1)">Review Previous Steps</button></div></div>
+        `;
 
         try {
             await fetch(bridgeUrl, {
@@ -128,8 +156,8 @@
                     percentage: percentage
                 })
             });
-            document.getElementById('saveStatus').innerText = "Results saved successfully!";
-        } catch (e) { document.getElementById('saveStatus').innerText = "Score calculated, but save failed."; }
+            document.getElementById('saveStatus').innerText = "✓ Progress saved to Teacher Gradebook";
+        } catch (e) { document.getElementById('saveStatus').innerText = "Score recorded locally, but cloud sync failed."; }
     }
 
     async function submitAssessment() {
@@ -139,33 +167,57 @@
         const criteria = lessonData[currentIndex].AI_Criteria;
         const question = lessonData[currentIndex].Resource_Link;
 
-        if (!answer.trim()) return alert("Type an answer first!");
+        if (!answer.trim()) return alert("Please write an answer before checking!");
 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
         submitBtn.disabled = true;
-        submitBtn.innerHTML = `<div class="loader"></div> Analysing...`;
+        submitBtn.innerHTML = `<div class="loader"></div> Evaluating Answer...`;
         feedbackBox.style.display = 'block';
+        feedbackBox.innerHTML = "<em>Analyzing your response...</em>";
 
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: `Grade: Q: ${question} A: ${answer} Criteria: ${criteria}. Format: **MARK:** [X/3] <br> **Strengths:** [Feedback] <br> **Targets:** [Advice]` }] }] })
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `You are an expert teacher. Grade this student response.
+                            Question: ${question}
+                            Answer: ${answer}
+                            Criteria: ${criteria}
+                            
+                            IMPORTANT: Format your response EXACTLY as:
+                            MARK: [X/3]
+                            <br>
+                            **Strengths:**
+                            [Your feedback]
+                            <br>
+                            **Targets:**
+                            [Your advice]
+                            
+                            Be concise and encouraging.`
+                        }]
+                    }]
+                })
             });
+
             const result = await response.json();
             let aiFeedback = result.candidates[0].content.parts[0].text;
             
-            // FIXED: Improved extraction to ensure scores are saved even with line breaks
+            // SCORE CATCHER: Looks for the number inside [X/3] regardless of spaces
             const markMatch = aiFeedback.match(/MARK:\s*\[(\d+)\/3\]/i);
             if (markMatch) { 
                 scores[currentIndex] = parseInt(markMatch[1]);
-                console.log("Score locked in:", scores[currentIndex]);
             }
 
+            // UI POLISH: Convert AI bolding to HTML
             aiFeedback = aiFeedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             feedbackBox.innerHTML = `<h3>Teacher Feedback</h3>${aiFeedback}`;
-        } catch (error) { feedbackBox.innerHTML = "<b>Connection Failed.</b>"; }
-        submitBtn.innerHTML = "Check with AI Assistant";
+        } catch (error) { 
+            feedbackBox.innerHTML = "<b>Connection Error:</b> AI is currently busy. Please try again."; 
+        }
+        submitBtn.innerHTML = "Check Answer with AI Assistant";
         submitBtn.disabled = false;
     }
 
