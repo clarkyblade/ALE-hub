@@ -66,7 +66,7 @@
 <script>
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
     
-    // API KEY Logic (Tier 1 Key for ALE Learning Hub)
+    // API KEY (Tier 1 Key for ALE Learning Hub)
     const p1 = "AIzaSyCRU8U4";
     const p2 = "9Nk-wLoqiUMV";
     const p3 = "IEBiK-42u30AaZc";
@@ -129,13 +129,12 @@
         document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em; font-weight:bold;">Open Slides</a>` : '';
         document.getElementById('stepCounter').innerText = `Step ${currentIndex + 1} of ${currentLesson.length}`;
         document.getElementById('prevBtn').disabled = currentIndex === 0;
-        document.getElementById('nextBtn').innerText = (currentIndex === currentLesson.length - 1) ? "Finish" : "Next Step";
 
         let rawLink = step.Resource_Link || "", fileId = rawLink; 
         if (rawLink.includes('/d/')) fileId = rawLink.split('/d/')[1].split('/')[0];
 
         if (step.Block_Type === 'ASSESS') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type here..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745;">Check Answer</button><div id="fbBox" class="feedback-box"></div></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer here..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745;">Check Answer</button><div id="fbBox" class="feedback-box"></div></div>`;
         } else if (['IMAGE', 'SOUND', 'DRIVE_VIDEO'].includes(step.Block_Type)) {
             stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen></iframe>`;
         } else if (step.Block_Type === 'INFO') {
@@ -154,8 +153,8 @@
         b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "Analyzing...";
         
         try {
-            // MATCHING YOUR DASHBOARD EXACTLY: v1beta + gemini-1.5-flash
-            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            // MATCHING YOUR DASHBOARD EXACTLY: gemini-2.5-flash
+            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ contents: [{ parts: [{ text: `Grade: Q: ${s.Resource_Link} A: ${a} Criteria: ${s.AI_Criteria}.` }] }] })
             });
