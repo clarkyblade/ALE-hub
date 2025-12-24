@@ -3,89 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Virtual Classroom - Accessibility Pro</title>
+    <title>Virtual Classroom</title>
     <style>
         :root { --overlay-color: rgba(255, 255, 255, 0); }
         body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
         
+        /* Original Layout Styles Restored */
         #visualOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; background-color: var(--overlay-color); }
-
-        /* SCROLLING ZOOM WINDOW */
-        #zoomWindow {
-            position: fixed;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 900px;
-            height: 100px;
-            background: #000;
-            border: 4px solid #ffcc00;
-            border-radius: 15px;
-            z-index: 10002;
-            display: none;
-            overflow: hidden; /* Hide the overflow for scrolling */
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            pointer-events: none;
-        }
-
-        #zoomContent {
-            position: absolute;
-            white-space: nowrap; /* Forces text into one long line */
-            color: #ffcc00;
-            padding: 20px;
-            font-size: 2.8em;
-            font-weight: bold;
-            display: inline-block;
-            will-change: transform;
-        }
-
-        /* Animation for long sentences */
-        @keyframes scrollText {
-            from { transform: translateX(100%); }
-            to { transform: translateX(-100%); }
-        }
-
         .login-screen { max-width: 500px; width: 90%; background: white; margin-top: 50px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
+        select, input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         .a11y-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; }
-        .player-container { max-width: 1000px; width: 95%; background: white; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; display: none; flex-direction: column; }
+        .a11y-panel label { font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 8px; }
+        
+        /* Player & Content Styles */
+        .player-container { max-width: 1000px; width: 95%; background: white; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; display: none; flex-direction: column; position: relative; }
         .header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .content-area { aspect-ratio: 16 / 9; width: 100%; position: relative; background: #fff; display: flex; flex-direction: column; }
+        .content-area { aspect-ratio: 16 / 9; width: 100%; position: relative; background: #fff; display: flex; flex-direction: column; transition: transform 0.1s ease-out; transform-origin: 0 0; }
         iframe { width: 100%; height: 100%; border: none; }
         .assessment-content { padding: 30px; overflow-y: auto; text-align: left; flex-grow: 1; }
-        textarea { width: 100%; height: 120px; padding: 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; margin-bottom: 15px; }
-        .feedback-box { padding: 20px; border-radius: 8px; background: #f8f9fa; border-left: 5px solid #28a745; margin-top: 20px; white-space: pre-line; display: none; }
+        textarea { width: 100%; height: 150px; padding: 15px; border-radius: 8px; font-size: 16px; border: 1px solid #ccc; resize: none; margin-bottom: 15px; font-family: inherit; }
+        .feedback-box { padding: 20px; border-radius: 8px; background: #f8f9fa; border-left: 5px solid #28a745; margin-top: 20px; white-space: pre-line; display: none; line-height: 1.6; }
         .footer { padding: 20px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         button { padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
         button:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* FIXED MAGNIFIER LENS */
+        #magLens {
+            position: fixed;
+            width: 200px;
+            height: 200px;
+            border: 4px solid #333;
+            border-radius: 50%;
+            pointer-events: none;
+            display: none;
+            z-index: 10000;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(0px); /* Visual cue */
+        }
+        
+        /* Zoom Class to be applied to the content-area */
+        .zoomed { transform: scale(2); cursor: crosshair; }
     </style>
 </head>
 <body>
 
 <div id="visualOverlay"></div>
-<div id="zoomWindow"><div id="zoomContent">Hover over text to read...</div></div>
+<div id="magLens"></div>
 
 <div id="loginScreen" class="login-screen">
     <h1>Virtual Classroom</h1>
     <div class="a11y-panel">
-        <label><b>Accessibility Tools:</b></label>
-        <button onclick="toggleMagnifier()" id="magToggle" style="width:100%; background:#6f42c1; margin-top:10px;">🔍 Scrolling Reader: OFF</button>
-        <div style="display:flex; gap:10px; margin-top:10px;">
-            <input type="color" id="overlayColor" value="#ffffff" style="height:40px; width:60px;">
-            <input type="range" id="overlayOpacity" min="0" max="0.5" step="0.01" value="0" style="flex-grow:1;">
+        <label>Colour Overlay Picker:</label>
+        <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 10px;">
+            <input type="color" id="overlayColor" value="#ffffff" style="width: 60px; height: 45px; padding: 2px; margin: 0;">
+            <input type="range" id="overlayOpacity" min="0" max="0.5" step="0.01" value="0" style="margin: 0;">
         </div>
+        <label>Reading Tools:</label>
+        <button id="magToggle" onclick="toggleMagnifier()" style="width: 100%; background: #6c757d;">🔍 Magnifier: OFF</button>
     </div>
-    <input type="text" id="studentName" placeholder="Student Full Name">
-    <select id="yearSelect" onchange="updateUnits()"><option value="">Select Year...</option></select>
+    <input type="text" id="studentName" placeholder="Enter Full Name">
+    <select id="yearSelect" onchange="updateUnits()"><option value="">Select Year Group...</option></select>
     <select id="unitSelect" onchange="updateLessons()" disabled><option value="">Select Unit...</option></select>
     <select id="lessonSelect" disabled><option value="">Select Lesson...</option></select>
-    <button onclick="startLesson()" style="width: 100%;">Launch Classroom</button>
+    <button onclick="startLesson()" style="width: 100%;">Enter Classroom</button>
 </div>
 
 <div id="player" class="player-container">
     <div class="header">
         <div id="headerTitle"></div>
-        <button onclick="toggleMagnifier()" style="background:#6f42c1; font-size:0.8em;">🔍 Reader Toggle</button>
+        <div id="headerLink"></div>
     </div>
     <div class="content-area" id="mainStage"></div>
     <div class="footer">
@@ -99,64 +86,62 @@
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
     const apiKey = "AIzaSyCRU8U49Nk-wLoqiUMVIEBiK-42u30AaZc"; 
     
-    let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false, magActive = false, lastText = "";
+    let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false;
+    let magActive = false;
 
-    // 1. SCROLLING READER LOGIC
+    // MAGNIFIER LOGIC
     function toggleMagnifier() {
         magActive = !magActive;
-        const win = document.getElementById('zoomWindow');
-        win.style.display = magActive ? 'block' : 'none';
-        document.getElementById('magToggle').innerText = magActive ? "🔍 Scrolling Reader: ON" : "🔍 Scrolling Reader: OFF";
-        document.getElementById('magToggle').style.background = magActive ? "#e83e8c" : "#6f42c1";
+        const btn = document.getElementById('magToggle');
+        const lens = document.getElementById('magLens');
+        const stage = document.getElementById('mainStage');
         
-        if(magActive) document.addEventListener('mousemove', handleZoom);
-        else {
-            document.removeEventListener('mousemove', handleZoom);
-            window.speechSynthesis.cancel(); // Stop talking if turned off
+        btn.innerText = magActive ? "🔍 Magnifier: ON" : "🔍 Magnifier: OFF";
+        btn.style.background = magActive ? "#28a745" : "#6c757d";
+        
+        if (magActive) {
+            lens.style.display = "block";
+            stage.classList.add('zoomed');
+            document.addEventListener('mousemove', moveMagnifier);
+        } else {
+            lens.style.display = "none";
+            stage.classList.remove('zoomed');
+            stage.style.transform = "scale(1)";
+            document.removeEventListener('mousemove', moveMagnifier);
         }
     }
 
-    function handleZoom(e) {
-        const zoomContent = document.getElementById('zoomContent');
-        const element = document.elementFromPoint(e.clientX, e.clientY);
+    function moveMagnifier(e) {
+        const lens = document.getElementById('magLens');
+        const stage = document.getElementById('mainStage');
+        const rect = stage.getBoundingClientRect();
         
-        if (element && (element.tagName === 'P' || element.tagName === 'H4' || element.tagName === 'STRONG' || element.tagName === 'DIV')) {
-            let text = element.innerText;
-            if (text === lastText) return; // Don't reset if still on same text
-            lastText = text;
-            
-            zoomContent.innerText = text;
-            
-            // Calculate if text is longer than the window
-            const winWidth = document.getElementById('zoomWindow').offsetWidth;
-            const textWidth = zoomContent.offsetWidth;
-
-            if (textWidth > winWidth - 40) {
-                // If text is long, start the scroll animation
-                const duration = text.length * 0.15; // Speed based on length
-                zoomContent.style.animation = `scrollText ${duration}s linear infinite`;
-            } else {
-                zoomContent.style.animation = 'none';
-                zoomContent.style.left = '20px'; // Keep short text static
-            }
+        // Move the physical lens circle
+        lens.style.left = (e.clientX - 100) + 'px';
+        lens.style.top = (e.clientY - 100) + 'px';
+        
+        // Move the background content inside the stage to follow the mouse
+        if (magActive) {
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            stage.style.transformOrigin = `${x}px ${y}px`;
         }
     }
 
-    // 2. OVERLAY LOGIC
+    // ORIGINAL APP LOGIC
     document.getElementById('overlayColor').oninput = document.getElementById('overlayOpacity').oninput = () => {
         const c = document.getElementById('overlayColor').value, o = document.getElementById('overlayOpacity').value;
         const r = parseInt(c.slice(1,3), 16), g = parseInt(c.slice(3,5), 16), b = parseInt(c.slice(5,7), 16);
         document.documentElement.style.setProperty('--overlay-color', `rgba(${r},${g},${b},${o})`);
     };
 
-    // 3. CORE DATABASE LOGIC
     window.onload = async () => {
         try {
             const resp = await fetch(bridgeUrl);
             db = await resp.json();
             const years = [...new Set(db.map(row => row.Year_Group))].filter(Boolean).sort();
             years.forEach(y => document.getElementById('yearSelect').innerHTML += `<option value="${y}">${y}</option>`);
-        } catch(e) { console.error("Database connection error."); }
+        } catch(e) { console.error("Database connection failed."); }
     };
 
     function updateUnits() {
@@ -184,7 +169,7 @@
     function startLesson() {
         studentName = document.getElementById('studentName').value;
         const id = document.getElementById('lessonSelect').value;
-        if(!studentName || !id) return alert("Select options first.");
+        if(!studentName || !id) return alert("Select all options first.");
         currentLesson = db.filter(r => r.Lesson_ID === id).sort((a,b) => a.Block_Order - b.Block_Order);
         currentIndex = 0; isSubmitted = false; scores = {};
         document.getElementById('loginScreen').style.display = 'none';
@@ -195,19 +180,21 @@
     function renderStep() {
         if (currentIndex >= currentLesson.length) { showFinal(); return; }
         const step = currentLesson[currentIndex], stage = document.getElementById('mainStage');
-        document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
+        document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
+        document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em; font-weight:bold;">Open Slides</a>` : '';
         document.getElementById('stepCounter').innerText = `Step ${currentIndex + 1} of ${currentLesson.length}`;
         document.getElementById('prevBtn').disabled = currentIndex === 0;
+        document.getElementById('nextBtn').innerText = (currentIndex === currentLesson.length - 1) ? "Finish Lesson" : "Next Step";
 
         let rawLink = step.Resource_Link || "", fileId = rawLink; 
         if (rawLink.includes('/d/')) fileId = rawLink.split('/d/')[1].split('/')[0];
 
         if (step.Block_Type === 'ASSESS') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer..."></textarea><button onclick="runAI()" id="aiBtn" style="width:100%; background:#28a745;">Check Answer with AI</button><div id="fbBox" class="feedback-box"></div></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer here..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745;">Check Answer with AI Assistant</button><div id="fbBox" class="feedback-box"></div></div>`;
         } else if (['IMAGE', 'SOUND', 'DRIVE_VIDEO'].includes(step.Block_Type)) {
-            stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview"></iframe>`;
+            stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen style="background: white;"></iframe>`;
         } else if (step.Block_Type === 'INFO') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Information:</h4><p style="font-size:1.15em;">${step.Resource_Link}</p></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Info:</h4><p style="font-size:1.1em; line-height:1.6;">${step.Resource_Link}</p></div>`;
         } else {
             let url = step.Resource_Link;
             if (step.Block_Type === 'VIDEO') url = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
@@ -218,8 +205,8 @@
 
     async function runAI() {
         const a = document.getElementById('ansInput').value, fb = document.getElementById('fbBox'), b = document.getElementById('aiBtn'), s = currentLesson[currentIndex];
-        if(!a.trim()) return;
-        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "Analyzing...";
+        if(!a.trim()) return alert("Write an answer first!"); 
+        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "<em>Analyzing...</em>";
         try {
             const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-lite:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -229,15 +216,15 @@
             let f = d.candidates[0].content.parts[0].text;
             const m = f.match(/MARK:\s*\[(\d+)\/3\]/i); if(m) scores[currentIndex] = parseInt(m[1]);
             fb.innerHTML = `<h4>Feedback:</h4>${f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}`;
-        } catch(e) { fb.innerHTML = "AI Limit Reached."; }
-        b.disabled = false; b.innerText = "Check Answer";
+        } catch(e) { fb.innerHTML = "AI Connection Issue."; }
+        b.disabled = false; b.innerText = "Check Answer with AI Assistant";
     }
 
     async function showFinal() {
         document.getElementById('nextBtn').style.display = "none";
         let got = 0, max = 0; Object.keys(scores).forEach(k => { got += scores[k]; max += 3; });
         const pct = max > 0 ? Math.round((got/max)*100) : 0;
-        document.getElementById('mainStage').innerHTML = `<div style="text-align:center; padding:40px;"><h1>Great Progress, ${studentName}!</h1><div style="font-size:4.5em; color:#007bff; font-weight:bold;">${pct}%</div><button onclick="location.reload()" style="background:#6c757d;">Back to Menu</button></div>`;
+        document.getElementById('mainStage').innerHTML = `<div style="text-align:center; padding:40px;"><h1>Great work, ${studentName}!</h1><div style="font-size:4em; color:#007bff; font-weight:bold; margin: 20px 0;">${pct}%</div><button onclick="location.reload()" style="background:#6c757d; margin-top:20px;">Back to Menu</button></div>`;
         if(!isSubmitted) {
             await fetch(bridgeUrl, { method: 'POST', body: JSON.stringify({ studentName, lessonId: currentLesson[0].Lesson_ID, score: got, maxScore: max, percentage: pct }) });
             isSubmitted = true;
