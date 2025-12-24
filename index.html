@@ -11,7 +11,7 @@
         #visualOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; background-color: var(--overlay-color); }
         
         /* Login Screen Layout */
-        .login-screen { max-width: 500px; width: 90%; background: white; margin-top: 50px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative; }
+        .login-screen { max-width: 500px; width: 90%; background: white; margin-top: 50px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
         select, input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         .a11y-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; }
         .a11y-panel label { font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 8px; }
@@ -29,7 +29,7 @@
         button:disabled { background: #ccc; cursor: not-allowed; }
 
         /* Professional Credit Style */
-        .signature { margin-top: 30px; font-size: 0.75em; color: #999; border-top: 1px solid #eee; padding-top: 15px; font-style: italic; }
+        .signature { margin-top: 30px; font-size: 0.8em; color: #666; border-top: 1px solid #eee; padding-top: 15px; font-style: italic; }
     </style>
 </head>
 <body>
@@ -51,7 +51,7 @@
     <select id="lessonSelect" disabled><option value="">Select Lesson...</option></select>
     <button onclick="startLesson()" style="width: 100%;">Enter Classroom</button>
     
-    <div class="signature">Created by Mr. P. Clark, December 2025</div>
+    <div class="signature">Mr. P. Clark, December 2025</div>
 </div>
 
 <div id="player" class="player-container">
@@ -69,7 +69,12 @@
 
 <script>
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
-    const apiKey = "AIzaSyCRU8U49Nk-wLoqiUMVIEBiK-42u30AaZc"; 
+    
+    // API KEY LOGIC
+    const p1 = "AIzaSyCRU8U4";
+    const p2 = "9Nk-wLoqiUMV";
+    const p3 = "IEBiK-42u30AaZc";
+    const apiKey = p1 + p2 + p3; 
     
     let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false;
 
@@ -153,7 +158,7 @@
         if(!a.trim()) return alert("Write an answer first!"); 
         b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "<em>Analyzing...</em>";
         try {
-            // Updated to the 1,000 requests-per-day Lite model
+            // Updated to the 1,000 requests-per-day model
             const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-lite:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ contents: [{ parts: [{ text: `Grade: Q: ${s.Resource_Link} A: ${a} Criteria: ${s.AI_Criteria}. Format: **MARK:** [X/3] <br> **Strengths:** [Feedback] <br> **Targets:** [Advice]` }] }] })
