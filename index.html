@@ -5,96 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Virtual Classroom - Pro Edition</title>
     <style>
-        :root { 
-            --overlay-color: rgba(255, 255, 255, 0); 
-            --accent-color: #007bff;
-        }
-        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+        :root { --overlay-color: rgba(255, 255, 255, 0); }
+        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
         
-        /* The Visual Overlay for Dyslexia/Sensitivity */
         #visualOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; background-color: var(--overlay-color); }
 
-        /* MAGNIFIER STYLES */
-        #magnifierLens {
-            position: absolute;
-            width: 180px;
-            height: 180px;
-            border: 4px solid #333;
-            border-radius: 50%;
-            cursor: none;
-            box-shadow: 0 0 20px rgba(0,0,0,0.4), inset 0 0 10px rgba(255,255,255,0.5);
+        /* NEW ZOOM BAR STYLES */
+        #zoomWindow {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            height: 120px;
+            background: #333;
+            border: 4px solid #ffcc00;
+            border-radius: 12px;
+            z-index: 10002;
             display: none;
-            pointer-events: none;
-            z-index: 10001;
             overflow: hidden;
-            background-color: white;
-        }
-        #magnifierContent {
-            position: absolute;
-            transform-origin: 0 0;
-            width: 1000px; /* Matches player width */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             pointer-events: none;
         }
-        .focus-highlight {
-            background-color: yellow;
+        #zoomContent {
+            position: absolute;
+            color: white;
+            padding: 20px;
+            font-size: 2.5em; /* This is the zoom power */
             font-weight: bold;
-            padding: 0 2px;
-            border-radius: 3px;
+            width: 2000px;
+            text-shadow: 2px 2px 4px #000;
         }
 
-        /* LOGIN SCREEN */
         .login-screen { max-width: 500px; width: 90%; background: white; margin-top: 50px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
         select, input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
-        
         .a11y-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; }
-        .a11y-panel label { font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 8px; }
         
-        /* PLAYER CONTAINER */
-        .player-container { max-width: 1000px; width: 95%; background: white; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; display: none; flex-direction: column; position: relative; }
+        .player-container { max-width: 1000px; width: 95%; background: white; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; display: none; flex-direction: column; }
         .header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .content-area { aspect-ratio: 16 / 9; width: 100%; position: relative; background: #fff; display: flex; flex-direction: column; }
         iframe { width: 100%; height: 100%; border: none; }
-        
         .assessment-content { padding: 30px; overflow-y: auto; text-align: left; flex-grow: 1; }
         textarea { width: 100%; height: 120px; padding: 15px; border-radius: 8px; font-size: 16px; border: 1px solid #ccc; resize: none; margin-bottom: 15px; font-family: inherit; }
-        
         .feedback-box { padding: 20px; border-radius: 8px; background: #f8f9fa; border-left: 5px solid #28a745; margin-top: 20px; white-space: pre-line; display: none; line-height: 1.6; }
-        
         .footer { padding: 20px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         button { padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        
-        .mag-btn { background: #6f42c1; font-size: 0.8em; margin-left: 10px; }
-        .mag-active { background: #e83e8c !important; }
-
-        .leaderboard-box { background: #f1f3f5; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 350px; text-align: left; display: none; }
-        .leader-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #dee2e6; }
     </style>
 </head>
 <body>
 
 <div id="visualOverlay"></div>
-<div id="magnifierLens">
-    <div id="magnifierContent"></div>
-</div>
+<div id="zoomWindow"><div id="zoomContent"></div></div>
 
 <div id="loginScreen" class="login-screen">
     <h1>Virtual Classroom</h1>
     <div class="a11y-panel">
-        <label>Accessibility Settings:</label>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 100px;">
-                <small>Overlay Color</small>
-                <input type="color" id="overlayColor" value="#ffffff" style="height: 40px;">
-            </div>
-            <div style="flex: 1; min-width: 100px;">
-                <small>Overlay Intensity</small>
-                <input type="range" id="overlayOpacity" min="0" max="0.5" step="0.01" value="0">
-            </div>
+        <label><b>Accessibility:</b></label>
+        <button onclick="toggleMagnifier()" id="magToggle" style="width:100%; background:#6f42c1; margin-top:10px;">🔍 Magnifier: OFF</button>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <input type="color" id="overlayColor" value="#ffffff" style="height:40px;">
+            <input type="range" id="overlayOpacity" min="0" max="0.5" step="0.01" value="0">
         </div>
-        <button onclick="toggleMagnifier()" id="loginMagToggle" style="width: 100%; background: #6f42c1; margin-top: 10px;">🔍 Screen Magnifier: OFF</button>
     </div>
-
     <input type="text" id="studentName" placeholder="Enter Full Name">
     <select id="yearSelect" onchange="updateUnits()"><option value="">Select Year Group...</option></select>
     <select id="unitSelect" onchange="updateLessons()" disabled><option value="">Select Unit...</option></select>
@@ -105,10 +79,7 @@
 <div id="player" class="player-container">
     <div class="header">
         <div id="headerTitle"></div>
-        <div>
-            <span id="headerLink"></span>
-            <button onclick="toggleMagnifier()" class="mag-btn" id="playerMagToggle">🔍 Magnifier</button>
-        </div>
+        <button onclick="toggleMagnifier()" style="background:#6f42c1; font-size:0.8em;">🔍 Toggle Magnifier</button>
     </div>
     <div class="content-area" id="mainStage"></div>
     <div class="footer">
@@ -120,97 +91,47 @@
 
 <script>
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
+    const apiKey = "AIzaSyCRU8U49Nk-wLoqiUMVIEBiK-42u30AaZc"; 
     
-    // API KEY LOGIC (Kept for later)
-    const p1 = "AIzaSyCRU8U4"; const p2 = "9Nk-wLoqiUMV"; const p3 = "IEBiK-42u30AaZc";
-    const apiKey = p1 + p2 + p3; 
-    
-    let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false;
-    let magnifierActive = false;
-    const zoomScale = 2; // Adjust for more/less zoom
+    let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false, magActive = false;
 
-    // FOCUS MODE KEYWORDS
-    const focusKeywords = ["CPU", "RAM", "ROM", "Processor", "Binary", "Hardware", "Software", "Input", "Output", "Storage", "Memory", "BIOS", "Registers"];
+    // 1. MAGNIFIER LOGIC (Text-Based Focus)
+    function toggleMagnifier() {
+        magActive = !magActive;
+        document.getElementById('zoomWindow').style.display = magActive ? 'block' : 'none';
+        document.getElementById('magToggle').innerText = magActive ? "🔍 Magnifier: ON" : "🔍 Magnifier: OFF";
+        document.getElementById('magToggle').style.background = magActive ? "#e83e8c" : "#6f42c1";
+        
+        if(magActive) document.addEventListener('mousemove', handleZoom);
+        else document.removeEventListener('mousemove', handleZoom);
+    }
 
-    // 1. DYSLEXIA OVERLAY LOGIC
+    function handleZoom(e) {
+        const zoomContent = document.getElementById('zoomContent');
+        const element = document.elementFromPoint(e.clientX, e.clientY);
+        
+        if (element && (element.tagName === 'P' || element.tagName === 'H4' || element.tagName === 'DIV' || element.tagName === 'STRONG')) {
+            zoomContent.innerText = element.innerText;
+        } else if (element && element.tagName === 'IFRAME') {
+            zoomContent.innerText = "[Embedded Media - Use Browser Zoom]";
+        }
+    }
+
+    // 2. OVERLAY LOGIC
     document.getElementById('overlayColor').oninput = document.getElementById('overlayOpacity').oninput = () => {
-        const c = document.getElementById('overlayColor').value;
-        const o = document.getElementById('overlayOpacity').value;
+        const c = document.getElementById('overlayColor').value, o = document.getElementById('overlayOpacity').value;
         const r = parseInt(c.slice(1,3), 16), g = parseInt(c.slice(3,5), 16), b = parseInt(c.slice(5,7), 16);
         document.documentElement.style.setProperty('--overlay-color', `rgba(${r},${g},${b},${o})`);
     };
 
-    // 2. MAGNIFIER LOGIC
-    function toggleMagnifier() {
-        magnifierActive = !magnifierActive;
-        const lens = document.getElementById('magnifierLens');
-        const loginBtn = document.getElementById('loginMagToggle');
-        const playerBtn = document.getElementById('playerMagToggle');
-        
-        if (magnifierActive) {
-            lens.style.display = 'block';
-            loginBtn.innerText = "🔍 Screen Magnifier: ON";
-            loginBtn.classList.add('mag-active');
-            playerBtn.classList.add('mag-active');
-            updateMagnifierContent();
-            document.addEventListener('mousemove', moveMagnifier);
-        } else {
-            lens.style.display = 'none';
-            loginBtn.innerText = "🔍 Screen Magnifier: OFF";
-            loginBtn.classList.remove('mag-active');
-            playerBtn.classList.remove('mag-active');
-            document.removeEventListener('mousemove', moveMagnifier);
-        }
-    }
-
-    function moveMagnifier(e) {
-        const lens = document.getElementById('magnifierLens');
-        const content = document.getElementById('magnifierContent');
-        const stage = document.getElementById('mainStage');
-        const rect = stage.getBoundingClientRect();
-
-        // Position Lens
-        lens.style.left = (e.pageX - lens.offsetWidth / 2) + 'px';
-        lens.style.top = (e.pageY - lens.offsetHeight / 2) + 'px';
-
-        // Calculate offset for the zoomed content
-        const offsetX = (e.clientX - rect.left);
-        const offsetY = (e.clientY - rect.top);
-
-        content.style.left = (-(offsetX * zoomScale) + (lens.offsetWidth / 2)) + 'px';
-        content.style.top = (-(offsetY * zoomScale) + (lens.offsetHeight / 2)) + 'px';
-    }
-
-    function updateMagnifierContent() {
-        if (!magnifierActive) return;
-        const stage = document.getElementById('mainStage');
-        const magContent = document.getElementById('magnifierContent');
-        
-        // Clone the content into the lens
-        magContent.innerHTML = stage.innerHTML;
-        magContent.style.transform = `scale(${zoomScale})`;
-
-        // Apply Focus Mode Highlighting inside the lens
-        highlightFocusKeywords(magContent);
-    }
-
-    function highlightFocusKeywords(element) {
-        let html = element.innerHTML;
-        focusKeywords.forEach(word => {
-            const regex = new RegExp(`\\b(${word})\\b`, 'gi');
-            html = html.replace(regex, `<span class="focus-highlight">$1</span>`);
-        });
-        element.innerHTML = html;
-    }
-
-    // 3. CORE DATABASE & LESSON LOGIC
+    // 3. CORE APP LOGIC
     window.onload = async () => {
         try {
             const resp = await fetch(bridgeUrl);
             db = await resp.json();
             const years = [...new Set(db.map(row => row.Year_Group))].filter(Boolean).sort();
             years.forEach(y => document.getElementById('yearSelect').innerHTML += `<option value="${y}">${y}</option>`);
-        } catch(e) { console.error("Database connection failed."); }
+        } catch(e) { console.error("Database error."); }
     };
 
     function updateUnits() {
@@ -239,7 +160,7 @@
     function startLesson() {
         studentName = document.getElementById('studentName').value;
         const id = document.getElementById('lessonSelect').value;
-        if(!studentName || !id) return alert("Select all options first.");
+        if(!studentName || !id) return alert("Fill all fields.");
         currentLesson = db.filter(r => r.Lesson_ID === id).sort((a,b) => a.Block_Order - b.Block_Order);
         currentIndex = 0; isSubmitted = false; scores = {};
         document.getElementById('loginScreen').style.display = 'none';
@@ -250,39 +171,32 @@
     function renderStep() {
         if (currentIndex >= currentLesson.length) { showFinal(); return; }
         const step = currentLesson[currentIndex], stage = document.getElementById('mainStage');
-        document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
-        document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em; font-weight:bold;">Open Slides</a>` : '';
+        document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
         document.getElementById('stepCounter').innerText = `Step ${currentIndex + 1} of ${currentLesson.length}`;
         document.getElementById('prevBtn').disabled = currentIndex === 0;
-        document.getElementById('nextBtn').innerText = (currentIndex === currentLesson.length - 1) ? "Finish Lesson" : "Next Step";
 
         let rawLink = step.Resource_Link || "", fileId = rawLink; 
         if (rawLink.includes('/d/')) fileId = rawLink.split('/d/')[1].split('/')[0];
         else if (rawLink.includes('id=')) fileId = rawLink.split('id=')[1].split('&')[0];
 
         if (step.Block_Type === 'ASSESS') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer here..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745;">Check Answer with AI Assistant</button><div id="fbBox" class="feedback-box"></div></div>`;
-        } else if (step.Block_Type === 'IMAGE' || step.Block_Type === 'SOUND' || step.Block_Type === 'DRIVE_VIDEO') {
-            stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen style="background: white;"></iframe>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type here..."></textarea><button onclick="runAI()" id="aiBtn" style="width:100%; background:#28a745;">Check Answer</button><div id="fbBox" class="feedback-box"></div></div>`;
+        } else if (['IMAGE', 'SOUND', 'DRIVE_VIDEO'].includes(step.Block_Type)) {
+            stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview"></iframe>`;
         } else if (step.Block_Type === 'INFO') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Info:</h4><p style="font-size:1.1em; line-height:1.6;">${step.Resource_Link}</p></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Info:</h4><p style="font-size:1.1em;">${step.Resource_Link}</p></div>`;
         } else {
             let url = step.Resource_Link;
             if (step.Block_Type === 'VIDEO') url = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
             if (step.Block_Type === 'SLIDES' && url.includes('/edit')) url = url.split('/edit')[0] + '/embed';
             stage.innerHTML = `<iframe src="${url}" allowfullscreen></iframe>`;
         }
-        
-        // Refresh magnifier if it's on
-        setTimeout(updateMagnifierContent, 500); 
     }
 
-    // 4. AI & FINALIZING (Unchanged logic)
     async function runAI() {
         const a = document.getElementById('ansInput').value, fb = document.getElementById('fbBox'), b = document.getElementById('aiBtn'), s = currentLesson[currentIndex];
-        if(!a.trim()) return alert("Write an answer first!"); 
-        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "<em>Analyzing...</em>";
-        
+        if(!a.trim()) return;
+        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "Analyzing...";
         try {
             const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-lite:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -292,37 +206,19 @@
             let f = d.candidates[0].content.parts[0].text;
             const m = f.match(/MARK:\s*\[(\d+)\/3\]/i); if(m) scores[currentIndex] = parseInt(m[1]);
             fb.innerHTML = `<h4>Feedback:</h4>${f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}`;
-            updateMagnifierContent();
-        } catch(e) { fb.innerHTML = "<b>AI Connection Issue.</b> Limits may be reached."; }
-        b.disabled = false; b.innerText = "Check Answer with AI Assistant";
+        } catch(e) { fb.innerHTML = "Connection Issue."; }
+        b.disabled = false; b.innerText = "Check Answer";
     }
 
     async function showFinal() {
         document.getElementById('nextBtn').style.display = "none";
         let got = 0, max = 0; Object.keys(scores).forEach(k => { got += scores[k]; max += 3; });
         const pct = max > 0 ? Math.round((got/max)*100) : 0;
-        document.getElementById('mainStage').innerHTML = `<div style="text-align:center; padding:40px;"><h1>Great work, ${studentName}!</h1><div style="font-size:4em; color:#007bff; font-weight:bold; margin: 20px 0;">${pct}%</div><p id="status">Syncing results...</p><button id="lbBtn" onclick="loadLeaderboard()" style="background:#ffc107; color:#000;">🏆 View Class Top 5</button><div id="lbBox" class="leaderboard-box"></div><br><button onclick="location.reload()" style="background:#6c757d; margin-top:20px;">Back to Menu</button></div>`;
+        document.getElementById('mainStage').innerHTML = `<div style="text-align:center; padding:40px;"><h1>Well done, ${studentName}!</h1><div style="font-size:4em; color:#007bff; font-weight:bold;">${pct}%</div><button onclick="location.reload()" style="background:#6c757d;">Exit</button></div>`;
         if(!isSubmitted) {
             await fetch(bridgeUrl, { method: 'POST', body: JSON.stringify({ studentName, lessonId: currentLesson[0].Lesson_ID, score: got, maxScore: max, percentage: pct }) });
-            document.getElementById('status').innerHTML = "✓ <b>Progress saved successfully!</b>"; isSubmitted = true;
+            isSubmitted = true;
         }
-        updateMagnifierContent();
-    }
-
-    async function loadLeaderboard() {
-        const box = document.getElementById('lbBox'); box.style.display = 'block'; box.innerHTML = "Fetching rankings...";
-        try {
-            const r = await fetch(bridgeUrl + "?action=getLeaderboard");
-            const d = await r.json();
-            const top5 = d.filter(row => row.Lesson_ID === currentLesson[0].Lesson_ID)
-                          .map(row => {
-                              let p = parseFloat(String(row.Percentage).replace('%',''));
-                              return {...row, pctNum: (p <= 1) ? p * 100 : p};
-                          }).sort((a,b) => b.pctNum - a.pctNum).slice(0, 5);
-            box.innerHTML = "<strong>🏆 Class Top 5:</strong>";
-            top5.forEach((e, i) => box.innerHTML += `<div class="leader-row"><span>${i+1}. ${e.Student_Name}</span> <strong>${Math.round(e.pctNum)}%</strong></div>`);
-            updateMagnifierContent();
-        } catch(e) { box.innerHTML = "Leaderboard unavailable."; }
     }
     function changeStep(n) { currentIndex += n; renderStep(); }
 </script>
