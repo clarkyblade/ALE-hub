@@ -11,7 +11,7 @@
         #visualOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; background-color: var(--overlay-color); }
         
         /* Login Screen Layout */
-        .login-screen { max-width: 500px; width: 90%; background: white; margin-top: 50px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
+        .login-screen { max-width: 500px; width: 90%; background: white; margin-top: 50px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative; }
         select, input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         .a11y-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; }
         .a11y-panel label { font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 8px; }
@@ -28,7 +28,6 @@
         button { padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
         button:disabled { background: #ccc; cursor: not-allowed; }
 
-        /* Professional Credit Style */
         .signature { margin-top: 30px; font-size: 0.8em; color: #666; border-top: 1px solid #eee; padding-top: 15px; font-style: italic; }
     </style>
 </head>
@@ -50,7 +49,6 @@
     <select id="unitSelect" onchange="updateLessons()" disabled><option value="">Select Unit...</option></select>
     <select id="lessonSelect" disabled><option value="">Select Lesson...</option></select>
     <button onclick="startLesson()" style="width: 100%;">Enter Classroom</button>
-    
     <div class="signature">Mr. P. Clark, December 2025</div>
 </div>
 
@@ -70,7 +68,7 @@
 <script>
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
     
-    // API KEY LOGIC
+    // API KEY Logic (Tier 1 Key for ALE Learning Hub)
     const p1 = "AIzaSyCRU8U4";
     const p2 = "9Nk-wLoqiUMV";
     const p3 = "IEBiK-42u30AaZc";
@@ -78,7 +76,6 @@
     
     let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false;
 
-    // Colour Overlay Logic
     document.getElementById('overlayColor').oninput = document.getElementById('overlayOpacity').oninput = () => {
         const c = document.getElementById('overlayColor').value, o = document.getElementById('overlayOpacity').value;
         const r = parseInt(c.slice(1,3), 16), g = parseInt(c.slice(3,5), 16), b = parseInt(c.slice(5,7), 16);
@@ -91,7 +88,7 @@
             db = await resp.json();
             const years = [...new Set(db.map(row => row.Year_Group))].filter(Boolean).sort();
             years.forEach(y => document.getElementById('yearSelect').innerHTML += `<option value="${y}">${y}</option>`);
-        } catch(e) { console.error("Database connection failed."); }
+        } catch(e) { console.error("Database failed."); }
     };
 
     function updateUnits() {
@@ -119,7 +116,7 @@
     function startLesson() {
         studentName = document.getElementById('studentName').value;
         const id = document.getElementById('lessonSelect').value;
-        if(!studentName || !id) return alert("Select all options first.");
+        if(!studentName || !id) return alert("Select all options.");
         currentLesson = db.filter(r => r.Lesson_ID === id).sort((a,b) => a.Block_Order - b.Block_Order);
         currentIndex = 0; isSubmitted = false; scores = {};
         document.getElementById('loginScreen').style.display = 'none';
@@ -130,21 +127,21 @@
     function renderStep() {
         if (currentIndex >= currentLesson.length) { showFinal(); return; }
         const step = currentLesson[currentIndex], stage = document.getElementById('mainStage');
-        document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold; text-transform:uppercase;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
+        document.getElementById('headerTitle').innerHTML = `<small style="color:#007bff; font-weight:bold;">${step.Unit}</small><h3>${step.Display_Title}</h3>`;
         document.getElementById('headerLink').innerHTML = step.Teacher_Presentation ? `<a href="${step.Teacher_Presentation}" target="_blank" style="background:#6c757d; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:0.8em; font-weight:bold;">Open Slides</a>` : '';
         document.getElementById('stepCounter').innerText = `Step ${currentIndex + 1} of ${currentLesson.length}`;
         document.getElementById('prevBtn').disabled = currentIndex === 0;
-        document.getElementById('nextBtn').innerText = (currentIndex === currentLesson.length - 1) ? "Finish Lesson" : "Next Step";
+        document.getElementById('nextBtn').innerText = (currentIndex === currentLesson.length - 1) ? "Finish" : "Next Step";
 
         let rawLink = step.Resource_Link || "", fileId = rawLink; 
         if (rawLink.includes('/d/')) fileId = rawLink.split('/d/')[1].split('/')[0];
 
         if (step.Block_Type === 'ASSESS') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer here..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745;">Check Answer with AI Assistant</button><div id="fbBox" class="feedback-box"></div></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type here..."></textarea><button id="aiBtn" onclick="runAI()" style="width:100%; background:#28a745;">Check Answer</button><div id="fbBox" class="feedback-box"></div></div>`;
         } else if (['IMAGE', 'SOUND', 'DRIVE_VIDEO'].includes(step.Block_Type)) {
-            stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen style="background: white;"></iframe>`;
+            stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen></iframe>`;
         } else if (step.Block_Type === 'INFO') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Info:</h4><p style="font-size:1.1em; line-height:1.6;">${step.Resource_Link}</p></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Info:</h4><p>${step.Resource_Link}</p></div>`;
         } else {
             let url = step.Resource_Link;
             if (step.Block_Type === 'VIDEO') url = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
@@ -155,27 +152,35 @@
 
     async function runAI() {
         const a = document.getElementById('ansInput').value, fb = document.getElementById('fbBox'), b = document.getElementById('aiBtn'), s = currentLesson[currentIndex];
-        if(!a.trim()) return alert("Write an answer first!"); 
-        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "<em>Analyzing...</em>";
+        if(!a.trim()) return alert("Write an answer."); 
+        b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "Analyzing...";
+        
         try {
-            // Updated to the 1,000 requests-per-day model
             const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-lite:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ contents: [{ parts: [{ text: `Grade: Q: ${s.Resource_Link} A: ${a} Criteria: ${s.AI_Criteria}. Format: **MARK:** [X/3] <br> **Strengths:** [Feedback] <br> **Targets:** [Advice]` }] }] })
+                body: JSON.stringify({ contents: [{ parts: [{ text: `Grade: Q: ${s.Resource_Link} A: ${a} Criteria: ${s.AI_Criteria}.` }] }] })
             });
             const d = await r.json(); 
+            
+            // DIAGNOSTIC CHECK: Show exact Google error
+            if (d.error) {
+                fb.innerHTML = `<b style="color:red;">Google Error: ${d.error.status}</b><br><small>${d.error.message}</small>`;
+                console.error(d.error);
+                b.disabled = false; b.innerText = "Check Answer";
+                return;
+            }
+
             let f = d.candidates[0].content.parts[0].text;
-            const m = f.match(/MARK:\s*\[(\d+)\/3\]/i); if(m) scores[currentIndex] = parseInt(m[1]);
             fb.innerHTML = `<h4>Feedback:</h4>${f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}`;
-        } catch(e) { fb.innerHTML = "<b>AI Connection Issue.</b> Limits may be reached."; }
-        b.disabled = false; b.innerText = "Check Answer with AI Assistant";
+        } catch(e) { fb.innerHTML = `<b style="color:red;">Browser Error:</b> ${e.message}`; }
+        b.disabled = false; b.innerText = "Check Answer";
     }
 
     async function showFinal() {
         document.getElementById('nextBtn').style.display = "none";
         let got = 0, max = 0; Object.keys(scores).forEach(k => { got += scores[k]; max += 3; });
         const pct = max > 0 ? Math.round((got/max)*100) : 0;
-        document.getElementById('mainStage').innerHTML = `<div style="text-align:center; padding:40px;"><h1>Great work, ${studentName}!</h1><div style="font-size:4em; color:#007bff; font-weight:bold; margin: 20px 0;">${pct}%</div><button onclick="location.reload()" style="background:#6c757d; margin-top:20px;">Back to Menu</button></div>`;
+        document.getElementById('mainStage').innerHTML = `<div style="text-align:center; padding:40px;"><h1>Well done, ${studentName}!</h1><div style="font-size:4em; color:#007bff; font-weight:bold;">${pct}%</div><button onclick="location.reload()" style="background:#6c757d;">Exit</button></div>`;
         if(!isSubmitted) {
             await fetch(bridgeUrl, { method: 'POST', body: JSON.stringify({ studentName, lessonId: currentLesson[0].Lesson_ID, score: got, maxScore: max, percentage: pct }) });
             isSubmitted = true;
