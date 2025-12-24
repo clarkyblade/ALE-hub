@@ -10,13 +10,11 @@
         
         #visualOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; background-color: var(--overlay-color); }
         
-        /* Login Screen Layout */
         .login-screen { max-width: 500px; width: 90%; background: white; margin-top: 50px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative; }
         select, input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         .a11y-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; }
         .a11y-panel label { font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 8px; }
         
-        /* Player & Content Styles */
         .player-container { max-width: 1000px; width: 95%; background: white; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; display: none; flex-direction: column; }
         .header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .content-area { aspect-ratio: 16 / 9; width: 100%; position: relative; background: #fff; display: flex; flex-direction: column; }
@@ -156,16 +154,15 @@
         b.disabled = true; b.innerText = "Marking..."; fb.style.display = 'block'; fb.innerHTML = "Analyzing...";
         
         try {
-            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-lite:generateContent?key=${apiKey}`, {
+            // FIXED URL: Using production v1 and standard flash-2.0
+            const r = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ contents: [{ parts: [{ text: `Grade: Q: ${s.Resource_Link} A: ${a} Criteria: ${s.AI_Criteria}.` }] }] })
             });
             const d = await r.json(); 
             
-            // DIAGNOSTIC CHECK: Show exact Google error
             if (d.error) {
                 fb.innerHTML = `<b style="color:red;">Google Error: ${d.error.status}</b><br><small>${d.error.message}</small>`;
-                console.error(d.error);
                 b.disabled = false; b.innerText = "Check Answer";
                 return;
             }
