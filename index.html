@@ -3,52 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Virtual Classroom - Pro Edition</title>
+    <title>Virtual Classroom - Accessibility Pro</title>
     <style>
         :root { --overlay-color: rgba(255, 255, 255, 0); }
         body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
         
         #visualOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; background-color: var(--overlay-color); }
 
-        /* NEW ZOOM BAR STYLES */
+        /* SCROLLING ZOOM WINDOW */
         #zoomWindow {
             position: fixed;
-            top: 10px;
+            top: 15px;
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
-            max-width: 800px;
-            height: 120px;
-            background: #333;
+            max-width: 900px;
+            height: 100px;
+            background: #000;
             border: 4px solid #ffcc00;
-            border-radius: 12px;
+            border-radius: 15px;
             z-index: 10002;
             display: none;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden; /* Hide the overflow for scrolling */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
             pointer-events: none;
         }
+
         #zoomContent {
             position: absolute;
-            color: white;
+            white-space: nowrap; /* Forces text into one long line */
+            color: #ffcc00;
             padding: 20px;
-            font-size: 2.5em; /* This is the zoom power */
+            font-size: 2.8em;
             font-weight: bold;
-            width: 2000px;
-            text-shadow: 2px 2px 4px #000;
+            display: inline-block;
+            will-change: transform;
+        }
+
+        /* Animation for long sentences */
+        @keyframes scrollText {
+            from { transform: translateX(100%); }
+            to { transform: translateX(-100%); }
         }
 
         .login-screen { max-width: 500px; width: 90%; background: white; margin-top: 50px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
-        select, input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         .a11y-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; }
-        
         .player-container { max-width: 1000px; width: 95%; background: white; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; display: none; flex-direction: column; }
         .header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .content-area { aspect-ratio: 16 / 9; width: 100%; position: relative; background: #fff; display: flex; flex-direction: column; }
         iframe { width: 100%; height: 100%; border: none; }
         .assessment-content { padding: 30px; overflow-y: auto; text-align: left; flex-grow: 1; }
-        textarea { width: 100%; height: 120px; padding: 15px; border-radius: 8px; font-size: 16px; border: 1px solid #ccc; resize: none; margin-bottom: 15px; font-family: inherit; }
-        .feedback-box { padding: 20px; border-radius: 8px; background: #f8f9fa; border-left: 5px solid #28a745; margin-top: 20px; white-space: pre-line; display: none; line-height: 1.6; }
+        textarea { width: 100%; height: 120px; padding: 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; margin-bottom: 15px; }
+        .feedback-box { padding: 20px; border-radius: 8px; background: #f8f9fa; border-left: 5px solid #28a745; margin-top: 20px; white-space: pre-line; display: none; }
         .footer { padding: 20px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         button { padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; transition: 0.3s; }
         button:disabled { background: #ccc; cursor: not-allowed; }
@@ -57,29 +63,29 @@
 <body>
 
 <div id="visualOverlay"></div>
-<div id="zoomWindow"><div id="zoomContent"></div></div>
+<div id="zoomWindow"><div id="zoomContent">Hover over text to read...</div></div>
 
 <div id="loginScreen" class="login-screen">
     <h1>Virtual Classroom</h1>
     <div class="a11y-panel">
-        <label><b>Accessibility:</b></label>
-        <button onclick="toggleMagnifier()" id="magToggle" style="width:100%; background:#6f42c1; margin-top:10px;">🔍 Magnifier: OFF</button>
+        <label><b>Accessibility Tools:</b></label>
+        <button onclick="toggleMagnifier()" id="magToggle" style="width:100%; background:#6f42c1; margin-top:10px;">🔍 Scrolling Reader: OFF</button>
         <div style="display:flex; gap:10px; margin-top:10px;">
-            <input type="color" id="overlayColor" value="#ffffff" style="height:40px;">
-            <input type="range" id="overlayOpacity" min="0" max="0.5" step="0.01" value="0">
+            <input type="color" id="overlayColor" value="#ffffff" style="height:40px; width:60px;">
+            <input type="range" id="overlayOpacity" min="0" max="0.5" step="0.01" value="0" style="flex-grow:1;">
         </div>
     </div>
-    <input type="text" id="studentName" placeholder="Enter Full Name">
-    <select id="yearSelect" onchange="updateUnits()"><option value="">Select Year Group...</option></select>
+    <input type="text" id="studentName" placeholder="Student Full Name">
+    <select id="yearSelect" onchange="updateUnits()"><option value="">Select Year...</option></select>
     <select id="unitSelect" onchange="updateLessons()" disabled><option value="">Select Unit...</option></select>
     <select id="lessonSelect" disabled><option value="">Select Lesson...</option></select>
-    <button onclick="startLesson()" style="width: 100%;">Enter Classroom</button>
+    <button onclick="startLesson()" style="width: 100%;">Launch Classroom</button>
 </div>
 
 <div id="player" class="player-container">
     <div class="header">
         <div id="headerTitle"></div>
-        <button onclick="toggleMagnifier()" style="background:#6f42c1; font-size:0.8em;">🔍 Toggle Magnifier</button>
+        <button onclick="toggleMagnifier()" style="background:#6f42c1; font-size:0.8em;">🔍 Reader Toggle</button>
     </div>
     <div class="content-area" id="mainStage"></div>
     <div class="footer">
@@ -93,27 +99,46 @@
     const bridgeUrl = 'https://script.google.com/macros/s/AKfycbwGT7-q0Q3BU7aNSpq6gm_JUuid2QwPgPS-5x5PQKr0UDXhwwwsNKZnrWoc1vT_XTk/exec';
     const apiKey = "AIzaSyCRU8U49Nk-wLoqiUMVIEBiK-42u30AaZc"; 
     
-    let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false, magActive = false;
+    let db = [], currentLesson = [], currentIndex = 0, scores = {}, studentName = "", isSubmitted = false, magActive = false, lastText = "";
 
-    // 1. MAGNIFIER LOGIC (Text-Based Focus)
+    // 1. SCROLLING READER LOGIC
     function toggleMagnifier() {
         magActive = !magActive;
-        document.getElementById('zoomWindow').style.display = magActive ? 'block' : 'none';
-        document.getElementById('magToggle').innerText = magActive ? "🔍 Magnifier: ON" : "🔍 Magnifier: OFF";
+        const win = document.getElementById('zoomWindow');
+        win.style.display = magActive ? 'block' : 'none';
+        document.getElementById('magToggle').innerText = magActive ? "🔍 Scrolling Reader: ON" : "🔍 Scrolling Reader: OFF";
         document.getElementById('magToggle').style.background = magActive ? "#e83e8c" : "#6f42c1";
         
         if(magActive) document.addEventListener('mousemove', handleZoom);
-        else document.removeEventListener('mousemove', handleZoom);
+        else {
+            document.removeEventListener('mousemove', handleZoom);
+            window.speechSynthesis.cancel(); // Stop talking if turned off
+        }
     }
 
     function handleZoom(e) {
         const zoomContent = document.getElementById('zoomContent');
         const element = document.elementFromPoint(e.clientX, e.clientY);
         
-        if (element && (element.tagName === 'P' || element.tagName === 'H4' || element.tagName === 'DIV' || element.tagName === 'STRONG')) {
-            zoomContent.innerText = element.innerText;
-        } else if (element && element.tagName === 'IFRAME') {
-            zoomContent.innerText = "[Embedded Media - Use Browser Zoom]";
+        if (element && (element.tagName === 'P' || element.tagName === 'H4' || element.tagName === 'STRONG' || element.tagName === 'DIV')) {
+            let text = element.innerText;
+            if (text === lastText) return; // Don't reset if still on same text
+            lastText = text;
+            
+            zoomContent.innerText = text;
+            
+            // Calculate if text is longer than the window
+            const winWidth = document.getElementById('zoomWindow').offsetWidth;
+            const textWidth = zoomContent.offsetWidth;
+
+            if (textWidth > winWidth - 40) {
+                // If text is long, start the scroll animation
+                const duration = text.length * 0.15; // Speed based on length
+                zoomContent.style.animation = `scrollText ${duration}s linear infinite`;
+            } else {
+                zoomContent.style.animation = 'none';
+                zoomContent.style.left = '20px'; // Keep short text static
+            }
         }
     }
 
@@ -124,14 +149,14 @@
         document.documentElement.style.setProperty('--overlay-color', `rgba(${r},${g},${b},${o})`);
     };
 
-    // 3. CORE APP LOGIC
+    // 3. CORE DATABASE LOGIC
     window.onload = async () => {
         try {
             const resp = await fetch(bridgeUrl);
             db = await resp.json();
             const years = [...new Set(db.map(row => row.Year_Group))].filter(Boolean).sort();
             years.forEach(y => document.getElementById('yearSelect').innerHTML += `<option value="${y}">${y}</option>`);
-        } catch(e) { console.error("Database error."); }
+        } catch(e) { console.error("Database connection error."); }
     };
 
     function updateUnits() {
@@ -149,8 +174,7 @@
         lSel.disabled = !u;
         if(u) {
             const lessons = db.filter(r => String(r.Year_Group) === y && r.Unit === u);
-            const uniqueNames = [...new Set(lessons.map(r => r.Lesson_Name))].filter(Boolean);
-            uniqueNames.forEach(ln => {
+            [...new Set(lessons.map(r => r.Lesson_Name))].filter(Boolean).forEach(ln => {
                 const match = lessons.find(r => r.Lesson_Name === ln);
                 lSel.innerHTML += `<option value="${match.Lesson_ID}">${ln}</option>`;
             });
@@ -160,7 +184,7 @@
     function startLesson() {
         studentName = document.getElementById('studentName').value;
         const id = document.getElementById('lessonSelect').value;
-        if(!studentName || !id) return alert("Fill all fields.");
+        if(!studentName || !id) return alert("Select options first.");
         currentLesson = db.filter(r => r.Lesson_ID === id).sort((a,b) => a.Block_Order - b.Block_Order);
         currentIndex = 0; isSubmitted = false; scores = {};
         document.getElementById('loginScreen').style.display = 'none';
@@ -177,14 +201,13 @@
 
         let rawLink = step.Resource_Link || "", fileId = rawLink; 
         if (rawLink.includes('/d/')) fileId = rawLink.split('/d/')[1].split('/')[0];
-        else if (rawLink.includes('id=')) fileId = rawLink.split('id=')[1].split('&')[0];
 
         if (step.Block_Type === 'ASSESS') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type here..."></textarea><button onclick="runAI()" id="aiBtn" style="width:100%; background:#28a745;">Check Answer</button><div id="fbBox" class="feedback-box"></div></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Task:</h4><p>${step.Resource_Link}</p><textarea id="ansInput" placeholder="Type answer..."></textarea><button onclick="runAI()" id="aiBtn" style="width:100%; background:#28a745;">Check Answer with AI</button><div id="fbBox" class="feedback-box"></div></div>`;
         } else if (['IMAGE', 'SOUND', 'DRIVE_VIDEO'].includes(step.Block_Type)) {
             stage.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview"></iframe>`;
         } else if (step.Block_Type === 'INFO') {
-            stage.innerHTML = `<div class="assessment-content"><h4>Info:</h4><p style="font-size:1.1em;">${step.Resource_Link}</p></div>`;
+            stage.innerHTML = `<div class="assessment-content"><h4>Information:</h4><p style="font-size:1.15em;">${step.Resource_Link}</p></div>`;
         } else {
             let url = step.Resource_Link;
             if (step.Block_Type === 'VIDEO') url = url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
@@ -206,7 +229,7 @@
             let f = d.candidates[0].content.parts[0].text;
             const m = f.match(/MARK:\s*\[(\d+)\/3\]/i); if(m) scores[currentIndex] = parseInt(m[1]);
             fb.innerHTML = `<h4>Feedback:</h4>${f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}`;
-        } catch(e) { fb.innerHTML = "Connection Issue."; }
+        } catch(e) { fb.innerHTML = "AI Limit Reached."; }
         b.disabled = false; b.innerText = "Check Answer";
     }
 
@@ -214,7 +237,7 @@
         document.getElementById('nextBtn').style.display = "none";
         let got = 0, max = 0; Object.keys(scores).forEach(k => { got += scores[k]; max += 3; });
         const pct = max > 0 ? Math.round((got/max)*100) : 0;
-        document.getElementById('mainStage').innerHTML = `<div style="text-align:center; padding:40px;"><h1>Well done, ${studentName}!</h1><div style="font-size:4em; color:#007bff; font-weight:bold;">${pct}%</div><button onclick="location.reload()" style="background:#6c757d;">Exit</button></div>`;
+        document.getElementById('mainStage').innerHTML = `<div style="text-align:center; padding:40px;"><h1>Great Progress, ${studentName}!</h1><div style="font-size:4.5em; color:#007bff; font-weight:bold;">${pct}%</div><button onclick="location.reload()" style="background:#6c757d;">Back to Menu</button></div>`;
         if(!isSubmitted) {
             await fetch(bridgeUrl, { method: 'POST', body: JSON.stringify({ studentName, lessonId: currentLesson[0].Lesson_ID, score: got, maxScore: max, percentage: pct }) });
             isSubmitted = true;
